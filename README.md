@@ -9,7 +9,7 @@ Based on jira-rest-java-client-re:
 I'm not a Java expert, I've just automated some reporting routines to simplify my work. So there are a lot of points to improve the code. If you want to support me, you'll be welcome:
 * submit bugs, enhancements or questions: https://github.com/retverd/jira-progress-reporter/issues;
 * feel free to help me with some issues: https://github.com/retverd/jira-progress-reporter/labels/help%20wanted;
-* fork and push request.
+* fork and pull request.
 
 # how to use
 * download any release you want https://github.com/retverd/jira-progress-reporter/releases;
