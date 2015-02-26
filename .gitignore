@@ -1,0 +1,10 @@
+# Package Files #
+*.jar
+
+# Generated files
+target
+test-output
+
+# Custom properties, reports, bat-files and tests
+custom*.*
+Custom*.java
