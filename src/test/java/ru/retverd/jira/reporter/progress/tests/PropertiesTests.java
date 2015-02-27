@@ -91,7 +91,7 @@ public class PropertiesTests {
 	    Assert.fail("No assertion was expected, but exception " + e.getClass() + " with message \"" + e.getMessage() + "\" was thrown!");
 	}
 
-	Assert.assertEquals(props.getIssueDescriptionFill(), "n", "Incorrect value used by default");
+	Assert.assertEquals(props.getIssueDescriptionFill(), false, "Incorrect value used by default");
     }
 
     @Test
