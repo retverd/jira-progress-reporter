@@ -13,17 +13,17 @@ public class PropertyHolder {
     static private final String UPDATE_ROW = "excel.update.row";
     static private final String UPDATE_COLUMN = "excel.update.column";
     static private final String START_PROCESSING_ROW = "excel.start_processing.row";
-    static private final String ISSUE_DESCRIPTION_COLUMN = "excel.issue.description.column";
+    static private final String ISSUE_SUMMARY_COLUMN = "excel.issue.summary.column";
     static private final String ISSUE_KEY_COLUMN = "excel.issue.key.column";
     static private final String ISSUE_ESTIMATION_COLUMN = "excel.issue.estimation.column";
     static private final String ISSUE_SPENT_COLUMN = "excel.issue.spent.column";
     static private final String ISSUE_REMAINING_COLUMN = "excel.issue.remaining.column";
     static private final String ISSUE_STATUS_COLUMN = "excel.issue.status.column";
     static private final String ISSUE_KEY_SKIP_VALUE = "excel.issue.key.skip.value";
-    static private final String ISSUE_DESCRIPTION_FILL = "excel.issue.description.fill";
+    static private final String ISSUE_SUMMARY_FILL = "excel.issue.summary.fill";
     static private final String RECALCULATE_FORMULAS = "excel.recalculate.formulas";
     // First value is default
-    static private final String[] descriptionFillValues = { "n", "y" };
+    static private final String[] summaryFillValues = { "n", "y" };
     static private final String[] recalculateFormulasValues = { "n", "y" };
 
     // Where to connect
@@ -39,7 +39,7 @@ public class PropertyHolder {
     // Row number for start processing
     private int startProcessingRow;
     // Column number for corresponding values
-    private int issueDescriptionColumn;
+    private int issueSummaryColumn;
     private int issueKeyColumn;
     private int issueEstimationColumn;
     private int issueSpentColumn;
@@ -47,9 +47,9 @@ public class PropertyHolder {
     private int issueStatusColumn;
     // Line with this issue key will be skipped
     private String issueKeySkipValue;
-    // If description empty put real issue description (y/n)
-    private boolean issueDescriptionFill;
-    // If description empty put real issue description (y/n)
+    // Overwrite issue summary (y/n)
+    private boolean issueSummaryFill;
+    // Recalculate all formulas in report (y/n)
     private boolean recalculateFormulas;
 
     public PropertyHolder(String propertiesFile) throws IOException {
@@ -71,7 +71,7 @@ public class PropertyHolder {
 
 	updateColumn = setIntProperty(properties, UPDATE_COLUMN, propertiesFile);
 
-	issueDescriptionColumn = setIntProperty(properties, ISSUE_DESCRIPTION_COLUMN, propertiesFile);
+	issueSummaryColumn = setIntProperty(properties, ISSUE_SUMMARY_COLUMN, propertiesFile);
 
 	issueKeyColumn = setIntProperty(properties, ISSUE_KEY_COLUMN, propertiesFile);
 
@@ -87,7 +87,7 @@ public class PropertyHolder {
 
 	issueKeySkipValue = setStringProperty(properties, ISSUE_KEY_SKIP_VALUE, propertiesFile);
 
-	issueDescriptionFill = stringToBoolean(setStringPropertyWithDefaults(properties, ISSUE_DESCRIPTION_FILL, descriptionFillValues, propertiesFile));
+	issueSummaryFill = stringToBoolean(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
 	recalculateFormulas = stringToBoolean(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
     }
@@ -159,8 +159,8 @@ public class PropertyHolder {
 	return startProcessingRow - 1;
     }
 
-    public int getIssueDescriptionColumn() {
-	return issueDescriptionColumn - 1;
+    public int getIssueSummaryColumn() {
+	return issueSummaryColumn - 1;
     }
 
     public int getIssueKeyColumn() {
@@ -187,8 +187,8 @@ public class PropertyHolder {
 	return issueKeySkipValue;
     }
 
-    public boolean getIssueDescriptionFill() {
-	return issueDescriptionFill;
+    public boolean getIssueSummaryFill() {
+	return issueSummaryFill;
     }
 
     public boolean getRecalculateFormulas() {

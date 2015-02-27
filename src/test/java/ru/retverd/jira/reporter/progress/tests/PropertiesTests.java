@@ -72,7 +72,7 @@ public class PropertiesTests {
 	    new PropertyHolder(filename);
 	    Assert.fail("Exception expected, but not thrown!");
 	} catch (IOException expected) {
-	    Assert.assertEquals(expected.getMessage(), "excel.issue.description.fill property in file " + filename
+	    Assert.assertEquals(expected.getMessage(), "excel.issue.summary.fill property in file " + filename
 		    + " contains inacceptable value: yes. Only values n, y are acceptable.", "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
@@ -91,7 +91,7 @@ public class PropertiesTests {
 	    Assert.fail("No assertion was expected, but exception " + e.getClass() + " with message \"" + e.getMessage() + "\" was thrown!");
 	}
 
-	Assert.assertEquals(props.getIssueDescriptionFill(), false, "Incorrect value used by default");
+	Assert.assertEquals(props.getIssueSummaryFill(), false, "Incorrect value used by default");
     }
 
     @Test

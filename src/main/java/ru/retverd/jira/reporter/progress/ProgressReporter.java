@@ -43,6 +43,11 @@ public class ProgressReporter {
 		    if (!currentCellValue.equalsIgnoreCase(properties.getIssueKeySkipValue())) {
 			System.out.println("Retrieving issue " + currentCellValue);
 			Issue issue = jc.getIssueByKey(currentCellValue);
+			// Save summary if required
+			if (properties.getIssueSummaryFill()) {
+			    currentCell = currentRow.getCell(properties.getIssueSummaryColumn());
+			    currentCell.setCellValue(issue.getSummary());
+			}
 			// Save estimation
 			currentCell = currentRow.getCell(properties.getIssueEstimationColumn());
 			currentCell.setCellValue(toHours(issue.getTimeTracking().getOriginalEstimateMinutes()));

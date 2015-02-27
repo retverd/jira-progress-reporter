@@ -9,12 +9,20 @@ Based on jira-rest-java-client-re:
 I'm not a Java expert, I've just automated some reporting routines to simplify my work. So there are a lot of points to improve the code. If you want to support me, you'll be welcome:
 * submit bugs, enhancements or questions: https://github.com/retverd/jira-progress-reporter/issues;
 * feel free to help me with some issues: https://github.com/retverd/jira-progress-reporter/labels/help%20wanted;
-* fork and push request.
+* fork and pull request.
+
+# limitations
+* Only xlsx files are expected to be supported;
+* ...
 
 # how to use
 * download any release you want https://github.com/retverd/jira-progress-reporter/releases;
-* update default.xlsx (put your own issues keys and descriptions);
+* update default.xlsx (put your own issues keys and summaries);
 * update default.properties according to changes in default.xlsx;
 * update default.bat if file names were changes;
 * launch bat-file and follow prompts;
 * submit bugs if you'll find any, but please consider existing issues: https://github.com/retverd/jira-progress-reporter/issues.
+
+# F.A.Q.
+* Q: ...
+    * A: ...
