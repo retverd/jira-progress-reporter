@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Scanner;
 
+import org.apache.poi.POIXMLException;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import ru.retverd.jira.helpers.JiraSimplifiedClient;
@@ -18,6 +19,7 @@ public class Starter {
 	String login;
 	String loginPrompt = "Please enter your login: ";
 	String passPrompt = "Please enter your password: ";
+	XSSFWorkbook workbook;
 
 	if (args.length < 2) {
 	    throw new IOException("Missing required parameters! See default.bat for more details.");
@@ -32,10 +34,20 @@ public class Starter {
 	System.out.format("done!%n");
 
 	// Load Excel file with report base
-	// TODO handle missing file!
-	System.out.format("Reading file " + reportFile + "...");
+	System.out.format("Reading report file " + reportFile + "...");
+	// OPCPackage is not used due to problems with saving results:
+	// org.apache.poi.openxml4j.exceptions.OpenXML4JException: The part
+	// /docProps/app.xml fail to be saved in the stream with marshaller
+	// org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
 	FileInputStream fis = new FileInputStream(reportFile);
-	XSSFWorkbook workbook = new XSSFWorkbook(fis);
+	try {
+	    workbook = new XSSFWorkbook(fis);
+	} catch (POIXMLException e) {
+	    throw new IOException("Report file " + reportFile + " has incorrect format.");
+	} finally {
+
+	}
+
 	fis.close();
 	System.out.format("done!%n");
 
@@ -66,7 +78,6 @@ public class Starter {
 	try {
 	    // Update report with new values from Jira
 	    workbook = ProgressReporter.updateReport(properties, workbook, jc);
-
 	    // Rewrite Excel file
 	    System.out.format("Rewriting file " + reportFile + "...");
 	    FileOutputStream fos = new FileOutputStream(new File(reportFile));
