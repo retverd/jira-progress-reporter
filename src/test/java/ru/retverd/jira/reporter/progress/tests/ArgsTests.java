@@ -18,7 +18,7 @@ public class ArgsTests {
 	    Assert.assertEquals(expected.getMessage(), "Missing required parameters! See default.bat for more details.", "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 
@@ -32,7 +32,7 @@ public class ArgsTests {
 	    Assert.assertEquals(expected.getMessage(), "Missing required parameters! See default.bat for more details.", "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 }

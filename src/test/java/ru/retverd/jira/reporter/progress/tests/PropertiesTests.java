@@ -19,7 +19,7 @@ public class PropertiesTests {
 	    Assert.assertEquals(expected.getMessage(), filename + " (The system cannot find the file specified)", "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 
@@ -33,7 +33,7 @@ public class PropertiesTests {
 	    Assert.assertEquals(expected.getMessage(), "Missing excel.tab.forbidden.marker property in file " + filename, "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 
@@ -47,7 +47,7 @@ public class PropertiesTests {
 	    Assert.assertEquals(expected.getMessage(), "Missing excel.update.row property in file " + filename, "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 
@@ -61,7 +61,7 @@ public class PropertiesTests {
 	    Assert.assertEquals(expected.getMessage(), "Integer value is expected in property excel.update.row in file " + filename, "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 
@@ -76,7 +76,7 @@ public class PropertiesTests {
 		    + " contains inacceptable value: yes. Only values n, y are acceptable.", "Wrong error message:");
 	} catch (Exception e) {
 	    IOException exp = new IOException();
-	    Assert.fail("Wrong exception: expected [" + e.getClass() + "] but found [" + exp.getClass() + "] with message " + e.getMessage());
+	    Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
 	}
     }
 
