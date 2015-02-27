@@ -2,7 +2,12 @@ package ru.retverd.jira.reporter.progress;
 
 import java.util.Locale;
 
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Hyperlink;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -23,6 +28,12 @@ public class ProgressReporter {
 
 	// Get the number of sheets in the xlsx file
 	int numberOfSheets = workbook.getNumberOfSheets();
+	// Required for hyperlinks
+	CreationHelper createHelper = workbook.getCreationHelper();
+	// Prepare style and font for cells with hyperlinks
+	Font hlinkFont = workbook.createFont();
+	hlinkFont.setUnderline(Font.U_SINGLE);
+	hlinkFont.setColor(IndexedColors.BLUE.getIndex());
 
 	// loop through each of the sheets
 	for (int i = 0; i < numberOfSheets; i++) {
@@ -30,9 +41,9 @@ public class ProgressReporter {
 	    String sheetName = sheet.getSheetName();
 	    if (sheetName.contains(properties.getRegularTabMarker())) {
 		System.out.println("Processing sheet " + sheetName.replace(properties.getRegularTabMarker(), "") + "...");
-		// update last update date
 		XSSFRow currentRow = sheet.getRow(properties.getUpdateRow());
 		XSSFCell currentCell = currentRow.getCell(properties.getUpdateColumn());
+		// update last update date
 		currentCell.setCellValue(reportHeader.withLocale(Locale.ENGLISH).print(today));
 		// iterate through issues
 		int rowNumber = properties.getStartProcessingRow();
@@ -43,6 +54,16 @@ public class ProgressReporter {
 		    if (!currentCellValue.equalsIgnoreCase(properties.getIssueKeySkipValue())) {
 			System.out.println("Retrieving issue " + currentCellValue);
 			Issue issue = jc.getIssueByKey(currentCellValue);
+			// Insert URL to cell if it is not present yet and update style
+			if (currentCell.getHyperlink() == null) {
+			    Hyperlink link = createHelper.createHyperlink(Hyperlink.LINK_URL);
+			    link.setAddress(properties.getJiraURL() + "/i#browse/" + currentCellValue);
+			    currentCell.setHyperlink(link);
+			    XSSFCellStyle linkStyle = workbook.createCellStyle();
+			    linkStyle.cloneStyleFrom(currentCell.getCellStyle());
+			    linkStyle.setFont(hlinkFont);
+			    currentCell.setCellStyle(linkStyle);
+			}
 			// Save summary if required
 			if (properties.getIssueSummaryFill()) {
 			    currentCell = currentRow.getCell(properties.getIssueSummaryColumn());
