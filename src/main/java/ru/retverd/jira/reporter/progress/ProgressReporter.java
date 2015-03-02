@@ -30,6 +30,8 @@ import com.atlassian.jira.rest.client.api.domain.Issue;
 public class ProgressReporter {
     // Divider between project prefix and issue number
     static private final String ISSUE_DIVIDER = "-";
+    static private final byte LINK_UNDERLINE_STYLE = Font.U_SINGLE;
+    static private final short LINK_FONT_COLOR = IndexedColors.BLUE.getIndex();
     private PropertyHolder properties;
     private XSSFWorkbook workbook;
     private JiraSimplifiedClient jc;
@@ -69,14 +71,7 @@ public class ProgressReporter {
 	DateTime today = new DateTime();
 	DateTimeFormatter reportHeader = DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ");
 
-	// Required for hyperlinks
-	CreationHelper createHelper = workbook.getCreationHelper();
-	// Prepare style and font for cells with hyperlinks
-	Font hlinkFont = workbook.createFont();
-	hlinkFont.setUnderline(Font.U_SINGLE);
-	hlinkFont.setColor(IndexedColors.BLUE.getIndex());
-
-	// loop through each of the sheets
+	// iterate through sheets
 	for (XSSFSheet sheet : workbook) {
 	    String sheetName = sheet.getSheetName();
 	    if (sheetName.contains(properties.getRegularTabMarker())) {
@@ -92,35 +87,7 @@ public class ProgressReporter {
 		    currentCell = currentRow.getCell(properties.getIssueKeyColumn());
 		    String currentCellValue = currentCell.getStringCellValue();
 		    if (isIssueInScope(currentCellValue)) {
-			System.out.println("Retrieving issue " + currentCellValue);
-			Issue issue = jc.getIssueByKey(currentCellValue);
-			// Insert URL to cell if it is not present yet and update style
-			if (currentCell.getHyperlink() == null) {
-			    Hyperlink link = createHelper.createHyperlink(Hyperlink.LINK_URL);
-			    link.setAddress(properties.getJiraURL() + "/i#browse/" + currentCellValue);
-			    currentCell.setHyperlink(link);
-			    XSSFCellStyle linkStyle = workbook.createCellStyle();
-			    linkStyle.cloneStyleFrom(currentCell.getCellStyle());
-			    linkStyle.setFont(hlinkFont);
-			    currentCell.setCellStyle(linkStyle);
-			}
-			// Save summary if required
-			if (properties.getIssueSummaryFill()) {
-			    currentCell = currentRow.getCell(properties.getIssueSummaryColumn());
-			    currentCell.setCellValue(issue.getSummary());
-			}
-			// Save estimation
-			currentCell = currentRow.getCell(properties.getIssueEstimationColumn());
-			currentCell.setCellValue(toHours(issue.getTimeTracking().getOriginalEstimateMinutes()));
-			// Save spent time
-			currentCell = currentRow.getCell(properties.getIssueSpentColumn());
-			currentCell.setCellValue(toHours(issue.getTimeTracking().getTimeSpentMinutes()));
-			// Save remaining time
-			currentCell = currentRow.getCell(properties.getIssueRemainingColumn());
-			currentCell.setCellValue(toHours(issue.getTimeTracking().getRemainingEstimateMinutes()));
-			// Save status
-			currentCell = currentRow.getCell(properties.getIssueStatusColumn());
-			currentCell.setCellValue(issue.getStatus().getName());
+			publishIssueDetails(currentRow, currentCellValue);
 		    }
 		    // get next row
 		    currentRow = sheet.getRow(rowNumber++);
@@ -147,6 +114,46 @@ public class ProgressReporter {
 	workbook.write(fos);
 	fos.close();
 	System.out.format("done!%n");
+    }
+
+    public void publishIssueDetails(XSSFRow row, String issueKey) {
+	// Required for hyperlinks
+	CreationHelper createHelper = workbook.getCreationHelper();
+	// Prepare style and font for cells with hyperlinks
+	Font hlinkFont = workbook.createFont();
+	hlinkFont.setUnderline(LINK_UNDERLINE_STYLE);
+	hlinkFont.setColor(LINK_FONT_COLOR);
+	XSSFCell cell = row.getCell(properties.getIssueKeyColumn());
+
+	System.out.println("Retrieving issue " + issueKey);
+	Issue issue = jc.getIssueByKey(issueKey);
+	// Insert URL to cell if it is not present yet and update style
+	if (cell.getHyperlink() == null) {
+	    Hyperlink link = createHelper.createHyperlink(Hyperlink.LINK_URL);
+	    link.setAddress(properties.getJiraURL() + "/i#browse/" + cell);
+	    cell.setHyperlink(link);
+	    XSSFCellStyle linkStyle = workbook.createCellStyle();
+	    linkStyle.cloneStyleFrom(cell.getCellStyle());
+	    linkStyle.setFont(hlinkFont);
+	    cell.setCellStyle(linkStyle);
+	}
+	// Save summary if required
+	if (properties.getIssueSummaryFill()) {
+	    cell = row.getCell(properties.getIssueSummaryColumn());
+	    cell.setCellValue(issue.getSummary());
+	}
+	// Save estimation
+	cell = row.getCell(properties.getIssueEstimationColumn());
+	cell.setCellValue(toHours(issue.getTimeTracking().getOriginalEstimateMinutes()));
+	// Save spent time
+	cell = row.getCell(properties.getIssueSpentColumn());
+	cell.setCellValue(toHours(issue.getTimeTracking().getTimeSpentMinutes()));
+	// Save remaining time
+	cell = row.getCell(properties.getIssueRemainingColumn());
+	cell.setCellValue(toHours(issue.getTimeTracking().getRemainingEstimateMinutes()));
+	// Save status
+	cell = row.getCell(properties.getIssueStatusColumn());
+	cell.setCellValue(issue.getStatus().getName());
     }
 
     public boolean isIssueInScope(String currentIssue) {
