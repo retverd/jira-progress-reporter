@@ -19,9 +19,11 @@ public class PropertyHolder {
     static private final String ISSUE_SPENT_COLUMN = "excel.issue.spent.column";
     static private final String ISSUE_REMAINING_COLUMN = "excel.issue.remaining.column";
     static private final String ISSUE_STATUS_COLUMN = "excel.issue.status.column";
-    static private final String ISSUE_KEY_SKIP_VALUE = "excel.issue.key.skip.value";
+    static private final String ISSUE_KEY_PREFIX = "excel.issue.key.prefix";
     static private final String ISSUE_SUMMARY_FILL = "excel.issue.summary.fill";
     static private final String RECALCULATE_FORMULAS = "excel.recalculate.formulas";
+    // Divider for properties lists
+    static private final String PROPERTIES_DIVIDER = ",";
     // First value is default
     static private final String[] summaryFillValues = { "n", "y" };
     static private final String[] recalculateFormulasValues = { "n", "y" };
@@ -45,8 +47,8 @@ public class PropertyHolder {
     private int issueSpentColumn;
     private int issueRemainingColumn;
     private int issueStatusColumn;
-    // Line with this issue key will be skipped
-    private String issueKeySkipValue;
+    // List of prefixes (with hyphen) for issues in project(s)
+    private String[] issueKeyPrefixList;
     // Overwrite issue summary (y/n)
     private boolean issueSummaryFill;
     // Recalculate all formulas in report (y/n)
@@ -85,7 +87,7 @@ public class PropertyHolder {
 
 	startProcessingRow = setIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
 
-	issueKeySkipValue = setStringProperty(properties, ISSUE_KEY_SKIP_VALUE, propertiesFile);
+	issueKeyPrefixList = setStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
 
 	issueSummaryFill = stringToBoolean(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
@@ -97,6 +99,13 @@ public class PropertyHolder {
 	    throw new IOException("Missing " + propName + " property in file " + fileName);
 	}
 	return props.getProperty(propName);
+    }
+
+    private String[] setStringArrayProperty(Properties props, String propName, String fileName) throws IOException {
+	if (props.getProperty(propName) == null) {
+	    throw new IOException("Missing " + propName + " property in file " + fileName);
+	}
+	return props.getProperty(propName).split(PROPERTIES_DIVIDER);
     }
 
     private String setStringPropertyWithDefaults(Properties props, String propName, String[] defValues, String fileName) throws IOException {
@@ -183,8 +192,8 @@ public class PropertyHolder {
 	return issueStatusColumn - 1;
     }
 
-    public String getIssueKeySkipValue() {
-	return issueKeySkipValue;
+    public String[] getIssueKeyPrefixList() {
+	return issueKeyPrefixList;
     }
 
     public boolean getIssueSummaryFill() {

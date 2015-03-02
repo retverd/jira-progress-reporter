@@ -1,5 +1,6 @@
 package ru.retverd.jira.reporter.progress;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 import org.apache.poi.ss.usermodel.CreationHelper;
@@ -21,6 +22,9 @@ import ru.retverd.jira.helpers.JiraSimplifiedClient;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 
 public class ProgressReporter {
+    // Divider between project prefix and issue number
+    static private final String ISSUE_DIVIDER = "-";
+
     public static XSSFWorkbook updateReport(PropertyHolder properties, XSSFWorkbook workbook, JiraSimplifiedClient jc) throws Exception {
 	// Today
 	DateTime today = new DateTime();
@@ -48,10 +52,10 @@ public class ProgressReporter {
 		// iterate through issues
 		int rowNumber = properties.getStartProcessingRow();
 		currentRow = sheet.getRow(rowNumber++);
-		currentCell = currentRow.getCell(properties.getIssueKeyColumn());
-		while (!currentCell.getStringCellValue().isEmpty()) {
+		while (currentRow != null) {
+		    currentCell = currentRow.getCell(properties.getIssueKeyColumn());
 		    String currentCellValue = currentCell.getStringCellValue();
-		    if (!currentCellValue.equalsIgnoreCase(properties.getIssueKeySkipValue())) {
+		    if (issueInScope(currentCellValue,properties.getIssueKeyPrefixList())) {
 			System.out.println("Retrieving issue " + currentCellValue);
 			Issue issue = jc.getIssueByKey(currentCellValue);
 			// Insert URL to cell if it is not present yet and update style
@@ -82,13 +86,8 @@ public class ProgressReporter {
 			currentCell = currentRow.getCell(properties.getIssueStatusColumn());
 			currentCell.setCellValue(issue.getStatus().getName());
 		    }
-		    // get new cell
+		    // get next row
 		    currentRow = sheet.getRow(rowNumber++);
-		    if (currentRow == null)
-			break;
-		    currentCell = currentRow.getCell(properties.getIssueKeyColumn());
-		    if (currentCell == null)
-			break;
 		}
 		System.out.println("...done!");
 	    } else {
@@ -97,8 +96,9 @@ public class ProgressReporter {
 	}
 
 	// Refresh all formulas if required
-	// Leads to exceptions on some Excel files with error message:
-	// Unexpected ptg class (org.apache.poi.ss.formula.ptg.ArrayPtg)
+	// Leads to exceptions on some Excel files with error message: Unexpected ptg class (org.apache.poi.ss.formula.ptg.ArrayPtg)
+	// See https://github.com/retverd/jira-progress-reporter/issues/1 (Problems with evaluateAllFormulaCells)
+
 	if (properties.getRecalculateFormulas()) {
 	    System.out.format("Recalculating formulas...");
 	    XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
@@ -110,5 +110,10 @@ public class ProgressReporter {
 
     static public double toHours(Integer value) {
 	return (double) (value == null ? 0 : value.intValue()) / 60;
+    }
+
+    static public boolean issueInScope(String currentIssue, String[] prefixList) {
+	String[] issueKeyParts = currentIssue.split(ISSUE_DIVIDER);
+	return Arrays.asList(prefixList).contains(issueKeyParts[0]);
     }
 }
