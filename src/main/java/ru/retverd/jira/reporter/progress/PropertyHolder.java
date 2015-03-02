@@ -89,9 +89,9 @@ public class PropertyHolder {
 
 	issueKeyPrefixList = setStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
 
-	issueSummaryFill = stringToBoolean(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
+	issueSummaryFill = isActionRequested(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
-	recalculateFormulas = stringToBoolean(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
+	recalculateFormulas = isActionRequested(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
     }
 
     private String setStringProperty(Properties props, String propName, String fileName) throws IOException {
@@ -136,7 +136,7 @@ public class PropertyHolder {
 	}
     }
 
-    private boolean stringToBoolean(String value) {
+    private boolean isActionRequested(String value) {
 	if (value.equals("y")) {
 	    return true;
 	} else {

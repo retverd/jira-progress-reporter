@@ -91,7 +91,7 @@ public class ProgressReporter {
 		while (currentRow != null) {
 		    currentCell = currentRow.getCell(properties.getIssueKeyColumn());
 		    String currentCellValue = currentCell.getStringCellValue();
-		    if (issueInScope(currentCellValue)) {
+		    if (isIssueInScope(currentCellValue)) {
 			System.out.println("Retrieving issue " + currentCellValue);
 			Issue issue = jc.getIssueByKey(currentCellValue);
 			// Insert URL to cell if it is not present yet and update style
@@ -149,7 +149,7 @@ public class ProgressReporter {
 	System.out.format("done!%n");
     }
 
-    public boolean issueInScope(String currentIssue) {
+    public boolean isIssueInScope(String currentIssue) {
 	String[] issueKeyParts = currentIssue.split(ISSUE_DIVIDER);
 	return Arrays.asList(properties.getIssueKeyPrefixList()).contains(issueKeyParts[0]);
     }
