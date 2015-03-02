@@ -1,16 +1,8 @@
 package ru.retverd.jira.reporter.progress;
 
 import java.io.Console;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Scanner;
-
-import org.apache.poi.POIXMLException;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import ru.retverd.jira.helpers.JiraSimplifiedClient;
 
 public class Starter {
     public static void main(String[] args) throws Exception {
@@ -19,39 +11,16 @@ public class Starter {
 	String login;
 	String loginPrompt = "Please enter your login: ";
 	String passPrompt = "Please enter your password: ";
-	XSSFWorkbook workbook;
 
 	if (args.length < 2) {
 	    throw new IOException("Missing required parameters! See default.bat for more details.");
 	}
 
-	String propertyFile = args[0];
-	String reportFile = args[1];
-
-	// Load and check file with properties
-	System.out.format("Loading and parsing properties from " + propertyFile + "...");
-	PropertyHolder properties = new PropertyHolder(propertyFile);
-	System.out.format("done!%n");
-
-	// Load Excel file with report base
-	System.out.format("Reading report file " + reportFile + "...");
-	// OPCPackage is not used due to problems with saving results:
-	// org.apache.poi.openxml4j.exceptions.OpenXML4JException: The part
-	// /docProps/app.xml fail to be saved in the stream with marshaller
-	// org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
-	FileInputStream fis = new FileInputStream(reportFile);
-	try {
-	    workbook = new XSSFWorkbook(fis);
-	} catch (POIXMLException e) {
-	    throw new IOException("Report file " + reportFile + " has incorrect format.");
-	} finally {
-
-	}
-
-	fis.close();
-	System.out.format("done!%n");
+	// Load and check required files
+	ProgressReporter reportHandler = new ProgressReporter(args[0], args[1]);
 
 	// Request credentials for JIRA
+	// TODO handle missing credentials!
 	if (args.length == 4) {
 	    login = args[2];
 	    pass = args[3];
@@ -71,21 +40,16 @@ public class Starter {
 	    }
 	}
 
-	// Open connection to Jira
-	// TODO handle incorrect credentials!
-	JiraSimplifiedClient jc = new JiraSimplifiedClient(properties.getJiraURL(), login, pass);
+	// Connect to JIRA
+	reportHandler.connectToJIRA(login, pass);
 
 	try {
 	    // Update report with new values from Jira
-	    workbook = ProgressReporter.updateReport(properties, workbook, jc);
-	    // Rewrite Excel file
-	    System.out.format("Rewriting file " + reportFile + "...");
-	    FileOutputStream fos = new FileOutputStream(new File(reportFile));
-	    workbook.write(fos);
-	    fos.close();
-	    System.out.format("done!%n");
+	    reportHandler.updateReport();
+	    // Save updated report
+	    reportHandler.saveReport(args[1]);
 	} finally {
-	    jc.closeConnection();
+	    reportHandler.disconnectFromJIRA();
 	}
     }
 }
