@@ -30,7 +30,9 @@ import com.atlassian.jira.rest.client.api.domain.Issue;
 public class ProgressReporter {
     // Divider between project prefix and issue number
     static private final String ISSUE_DIVIDER = "-";
+    // Underline hyperlinks
     static private final byte LINK_UNDERLINE_STYLE = Font.U_SINGLE;
+    // Color for hyperlinks
     static private final short LINK_FONT_COLOR = IndexedColors.BLUE.getIndex();
     private PropertyHolder properties;
     private XSSFWorkbook workbook;
@@ -109,7 +111,15 @@ public class ProgressReporter {
     }
 
     public void saveReport(String fileWithReport) throws IOException {
-	System.out.format("Rewriting file " + fileWithReport + "...");
+	String notification = "Rewriting";
+
+	if (properties.getReportFilenamePattern() != null) {
+	    DateTimeFormatter dateFormForReport = DateTimeFormat.forPattern(properties.getReportFilenamePattern());
+	    fileWithReport = dateFormForReport.print(new DateTime()) + ".xlsx";
+	    notification = "Saving report to";
+	}
+
+	System.out.format(notification + " file " + fileWithReport + "...");
 	FileOutputStream fos = new FileOutputStream(new File(fileWithReport));
 	workbook.write(fos);
 	fos.close();

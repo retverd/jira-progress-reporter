@@ -81,7 +81,7 @@ public class PropertiesTests {
     }
 
     @Test
-    public void testMissingOptionalProperty() throws Exception {
+    public void testMissingOptionalFlagProperty() throws Exception {
 	String filename = "src\\test\\resources\\missing_optional.properties";
 	PropertyHolder props = null;
 
@@ -95,12 +95,28 @@ public class PropertiesTests {
     }
 
     @Test
-    public void testAllCorrectProperties() throws Exception {
-	String filename = "src\\test\\resources\\all_correct.properties";
+    public void testMissingOptionalStringProperty() throws Exception {
+	String filename = "src\\test\\resources\\missing_pattern.properties";
+	PropertyHolder sample = null;
 	try {
-	    new PropertyHolder(filename);
+	    sample = new PropertyHolder(filename);
 	} catch (Exception e) {
 	    Assert.fail("No assertion was expected, but exception " + e.getClass() + " with message \"" + e.getMessage() + "\" was thrown!");
 	}
+	Assert.assertEquals(sample.getReportFilenamePattern(), null, "Incorrect result for property report.filename.pattern");
+    }
+
+    @Test
+    public void testAllCorrectProperties() throws Exception {
+	String filename = "src\\test\\resources\\all_correct.properties";
+	PropertyHolder sample = null;
+	try {
+	    sample = new PropertyHolder(filename);
+	} catch (Exception e) {
+	    Assert.fail("No assertion was expected, but exception " + e.getClass() + " with message \"" + e.getMessage() + "\" was thrown!");
+	}
+	Assert.assertEquals(sample.getIssueSummaryFill(), true, "Incorrect result for property excel.issue.summary.fill");
+	Assert.assertEquals(sample.getRecalculateFormulas(), false, "Incorrect result for property excel.recalculate.formulas");
+	Assert.assertEquals(sample.getReportFilenamePattern(), "yyyy.MM.dd_HH_mm_ss", "Incorrect result for property report.filename.pattern");
     }
 }

@@ -22,6 +22,7 @@ public class PropertyHolder {
     static private final String ISSUE_KEY_PREFIX = "excel.issue.key.prefix";
     static private final String ISSUE_SUMMARY_FILL = "excel.issue.summary.fill";
     static private final String RECALCULATE_FORMULAS = "excel.recalculate.formulas";
+    static private final String REPORT_FILENAME_PATTERN = "report.filename.pattern";
     // Divider for properties lists
     static private final String PROPERTIES_DIVIDER = ",";
     // First value is default
@@ -32,9 +33,10 @@ public class PropertyHolder {
     private String jiraURL;
     // Tabs that starts with this string will be processed
     private String regularTabMarker;
-    // Tab that starts with this string contains issues where time should not be
-    // estimated or logged
+    // Tab that starts with this string contains issues where time should not be estimated or logged
     private String forbiddenTabMarker;
+    // Pattern for new report filename, based on joda DateTimeFormat syntax 
+    private String reportFilenamePattern;
     // Coordinates of cell with date of update
     private int updateRow;
     private int updateColumn;
@@ -62,7 +64,7 @@ public class PropertyHolder {
 	properties.load(pathToPropertiesFile);
 	pathToPropertiesFile.close();
 
-	// I need hint how to do it better :)
+	// I need a hint how to init all variables better :)
 	jiraURL = setStringProperty(properties, JIRA_URL_NAME, propertiesFile);
 
 	regularTabMarker = setStringProperty(properties, REGULAR_TAB_MARKER, propertiesFile);
@@ -92,6 +94,9 @@ public class PropertyHolder {
 	issueSummaryFill = isActionRequested(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
 	recalculateFormulas = isActionRequested(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
+	
+	// Optional, no need to check if value is missing
+	reportFilenamePattern = properties.getProperty(REPORT_FILENAME_PATTERN);
     }
 
     private String setStringProperty(Properties props, String propName, String fileName) throws IOException {
@@ -202,5 +207,9 @@ public class PropertyHolder {
 
     public boolean getRecalculateFormulas() {
 	return recalculateFormulas;
+    }
+    
+    public String getReportFilenamePattern () {
+	return reportFilenamePattern;
     }
 }
