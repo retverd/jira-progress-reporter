@@ -7,4 +7,6 @@ test-output
 
 # Custom properties, reports, bat-files and tests
 custom*.*
+*.xlsx
+!default.xlsx
 Custom*.java
