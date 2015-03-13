@@ -1,6 +1,13 @@
 # Package Files #
 *.jar
 
+# IDE files
+.settings
+.project
+.classpath
+.idea
+*.iml
+
 # Generated files
 target
 test-output
