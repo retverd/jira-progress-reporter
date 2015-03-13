@@ -13,11 +13,17 @@ I'm not a Java expert, I've just automated some reporting routines to simplify m
 
 # limitations
 * Only xlsx files are expected to be supported;
+* Tested with JIRA v6.3.12#6343;
+* Only one root issue per sheet is supported;
+* Root issue should be first;
+* Only sub-tasks and issues linked by "has part" will be listed during unfold;
+* Links for sub-tasks are not being analyzed;
+* Use Java 7u67+ for Windows to avoid problems with column auto sizing;
 * ...
 
 # how to use
 * download any release you want https://github.com/retverd/jira-progress-reporter/releases;
-* update default.xlsx (put your own issues keys and summaries);
+* update default.xlsx (put your own issues keys and summaries, root issues if required);
 * update default.properties according to changes in default.xlsx;
 * update default.bat if file names were changes;
 * launch bat-file and follow prompts;

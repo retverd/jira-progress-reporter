@@ -24,7 +24,7 @@ public class ArgsTests {
 
     @Test
     public void testStartWithOneArg() throws Exception {
-	String[] args = new String[] {"test string"};
+	String[] args = new String[] { "test string" };
 	try {
 	    Starter.main(args);
 	    Assert.fail("Exception expected, but not thrown!");

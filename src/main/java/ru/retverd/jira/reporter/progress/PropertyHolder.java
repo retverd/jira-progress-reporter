@@ -23,6 +23,10 @@ public class PropertyHolder {
     static private final String ISSUE_SUMMARY_FILL = "excel.issue.summary.fill";
     static private final String RECALCULATE_FORMULAS = "excel.recalculate.formulas";
     static private final String REPORT_FILENAME_PATTERN = "report.filename.pattern";
+    static private final String UNFOLD_MARKER = "excel.unfold.marker";
+    static private final String UNFOLD_MARKER_COLUMN = "excel.unfold.marker.column";
+    static private final String ISSUE_RELATION_COLUMN = "excel.issue.relation.column";
+    static private final String ISSUE_PARENT_KEY_COLUMN = "excel.issue.parent.key.column";
     // Divider for properties lists
     static private final String PROPERTIES_DIVIDER = ",";
     // First value is default
@@ -35,14 +39,14 @@ public class PropertyHolder {
     private String regularTabMarker;
     // Tab that starts with this string contains issues where time should not be estimated or logged
     private String forbiddenTabMarker;
-    // Pattern for new report filename, based on joda DateTimeFormat syntax 
+    // Pattern for new report filename, based on joda DateTimeFormat syntax
     private String reportFilenamePattern;
     // Coordinates of cell with date of update
     private int updateRow;
     private int updateColumn;
     // Row number for start processing
     private int startProcessingRow;
-    // Column number for corresponding values
+    // Column numbers for corresponding values
     private int issueSummaryColumn;
     private int issueKeyColumn;
     private int issueEstimationColumn;
@@ -55,6 +59,12 @@ public class PropertyHolder {
     private boolean issueSummaryFill;
     // Recalculate all formulas in report (y/n)
     private boolean recalculateFormulas;
+    // Value to indicate that specific issue should be tried to be unfolded
+    private String unfoldMarker;
+    // Column numbers for corresponding values
+    private int unfoldMarkerColumn;
+    private int issueRelationColumn;
+    private int issueParentKeyColumn;
 
     public PropertyHolder(String propertiesFile) throws IOException {
 	Properties properties = new Properties();
@@ -94,9 +104,17 @@ public class PropertyHolder {
 	issueSummaryFill = isActionRequested(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
 	recalculateFormulas = isActionRequested(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
-	
+
 	// Optional, no need to check if value is missing
 	reportFilenamePattern = properties.getProperty(REPORT_FILENAME_PATTERN);
+
+	// Optional, no need to check if value is missing
+	unfoldMarker = properties.getProperty(UNFOLD_MARKER);
+	if (unfoldMarker != null) {
+	    unfoldMarkerColumn = setIntProperty(properties, UNFOLD_MARKER_COLUMN, propertiesFile);
+	    issueRelationColumn = setIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
+	    issueParentKeyColumn = setIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
+	}
     }
 
     private String setStringProperty(Properties props, String propName, String fileName) throws IOException {
@@ -208,8 +226,28 @@ public class PropertyHolder {
     public boolean getRecalculateFormulas() {
 	return recalculateFormulas;
     }
-    
-    public String getReportFilenamePattern () {
+
+    public String getReportFilenamePattern() {
 	return reportFilenamePattern;
+    }
+
+    public String getUnfoldMarker() {
+	return unfoldMarker;
+    }
+
+    public int getUnfoldMarkerColumn() {
+	return unfoldMarkerColumn - 1;
+    }
+
+    public int getIssueRelationColumn() {
+	return issueRelationColumn - 1;
+    }
+
+    public int getIssueParentKeyColumn() {
+	return issueParentKeyColumn - 1;
+    }
+    
+    public void setIssueSummaryFill(boolean newValue) {
+	issueSummaryFill = newValue;
     }
 }
