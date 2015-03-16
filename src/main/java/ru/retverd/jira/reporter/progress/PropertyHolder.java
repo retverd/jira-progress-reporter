@@ -8,6 +8,7 @@ import java.util.Properties;
 
 public class PropertyHolder {
     static private final String JIRA_URL_NAME = "jira.url";
+    static private final String JIRA_PROXY = "jira.proxy";
     static private final String REGULAR_TAB_MARKER = "excel.tab.regular.marker";
     static private final String FORBIDDEN_TAB_MARKER = "excel.tab.forbidden.marker";
     static private final String UPDATE_ROW = "excel.update.row";
@@ -29,6 +30,8 @@ public class PropertyHolder {
     static private final String ISSUE_PARENT_KEY_COLUMN = "excel.issue.parent.key.column";
     // Divider for properties lists
     static private final String PROPERTIES_DIVIDER = ",";
+    // Divider between proxy host and port
+    static private final String PROXY_DIVIDER = ":";
     // First value is default
     static private final String[] summaryFillValues = { "n", "y" };
     static private final String[] recalculateFormulasValues = { "n", "y" };
@@ -115,6 +118,14 @@ public class PropertyHolder {
 	    issueRelationColumn = setIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
 	    issueParentKeyColumn = setIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
 	}
+
+    // Optional, no need to check if value is missing
+    String proxy = properties.getProperty(JIRA_PROXY);
+    if (proxy != null) {
+        String[] proxyParameters = proxy.split(PROXY_DIVIDER);
+        System.setProperty("https.proxyHost", proxyParameters[0]);
+        System.setProperty("https.proxyPort", proxyParameters[1]);
+    }
     }
 
     private String setStringProperty(Properties props, String propName, String fileName) throws IOException {
