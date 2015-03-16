@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Locale;
 
 class ProgressReporter {
@@ -217,6 +218,19 @@ class ProgressReporter {
             throw new IllegalArgumentException("Time tracking is not supported for current Jira instance (" + properties.getJiraURL() + ").");
         }
         row.getCell(properties.getIssueStatusColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
+
+
+        Iterator<BasicComponent> iComponents = issue.getComponents().iterator();
+        String components = "";
+        while(iComponents.hasNext()) {
+            if (components.isEmpty()) {
+                components = iComponents.next().getName();
+            } else {
+                components = components + "," + iComponents.next().getName();
+            }
+        }
+        row.getCell(properties.getIssueComponentsColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(components);
+        row.getCell(properties.getIssueAssigneeColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getAssignee() == null ? "" : issue.getAssignee().getDisplayName());
     }
 
     boolean isIssueInScope(String issueKey) {
@@ -267,11 +281,12 @@ class ProgressReporter {
         sheet.autoSizeColumn(properties.getIssueKeyColumn());
         sheet.autoSizeColumn(properties.getIssueRelationColumn());
         sheet.autoSizeColumn(properties.getIssueParentKeyColumn());
-        sheet.autoSizeColumn(properties.getUnfoldMarkerColumn());
         sheet.autoSizeColumn(properties.getIssueEstimationColumn());
         sheet.autoSizeColumn(properties.getIssueSpentColumn());
         sheet.autoSizeColumn(properties.getIssueRemainingColumn());
         sheet.autoSizeColumn(properties.getIssueStatusColumn());
+        sheet.autoSizeColumn(properties.getIssueComponentsColumn());
+        sheet.autoSizeColumn(properties.getIssueAssigneeColumn());
     }
 
     void createCells(XSSFRow row) {
@@ -283,6 +298,8 @@ class ProgressReporter {
         row.createCell(properties.getIssueSpentColumn(), Cell.CELL_TYPE_NUMERIC);
         row.createCell(properties.getIssueRemainingColumn(), Cell.CELL_TYPE_NUMERIC);
         row.createCell(properties.getIssueStatusColumn(), Cell.CELL_TYPE_STRING);
+        row.createCell(properties.getIssueComponentsColumn(), Cell.CELL_TYPE_STRING);
+        row.createCell(properties.getIssueAssigneeColumn(), Cell.CELL_TYPE_STRING);
     }
 
     void addHyperLink(XSSFCell cell) {

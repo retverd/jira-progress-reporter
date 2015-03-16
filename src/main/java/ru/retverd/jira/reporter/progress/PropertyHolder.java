@@ -21,6 +21,8 @@ public class PropertyHolder {
     static private final String ISSUE_SPENT_COLUMN = "excel.issue.spent.column";
     static private final String ISSUE_REMAINING_COLUMN = "excel.issue.remaining.column";
     static private final String ISSUE_STATUS_COLUMN = "excel.issue.status.column";
+    static private final String ISSUE_COMPONENTS_COLUMN = "excel.issue.components.column";
+    static private final String ISSUE_ASSIGNEE_COLUMN = "excel.issue.assignee.column";
     static private final String ISSUE_KEY_PREFIX = "excel.issue.key.prefix";
     static private final String ISSUE_SUMMARY_FILL = "excel.issue.summary.fill";
     static private final String RECALCULATE_FORMULAS = "excel.recalculate.formulas";
@@ -58,6 +60,8 @@ public class PropertyHolder {
     private int issueSpentColumn;
     private int issueRemainingColumn;
     private int issueStatusColumn;
+    private int issueComponentsColumn;
+    private int issueAssigneeColumn;
     // List of prefixes (with hyphen) for issues in project(s)
     private String[] issueKeyPrefixList;
     // Overwrite issue summary
@@ -101,6 +105,10 @@ public class PropertyHolder {
         issueRemainingColumn = getIntProperty(properties, ISSUE_REMAINING_COLUMN, propertiesFile);
 
         issueStatusColumn = getIntProperty(properties, ISSUE_STATUS_COLUMN, propertiesFile);
+
+        issueComponentsColumn = getIntProperty(properties, ISSUE_COMPONENTS_COLUMN, propertiesFile);
+
+        issueAssigneeColumn = getIntProperty(properties, ISSUE_ASSIGNEE_COLUMN, propertiesFile);
 
         startProcessingRow = getIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
 
@@ -220,6 +228,14 @@ public class PropertyHolder {
 
     public int getIssueRemainingColumn() {
         return issueRemainingColumn - 1;
+    }
+
+    public int getIssueAssigneeColumn() {
+        return issueAssigneeColumn - 1;
+    }
+
+    public int getIssueComponentsColumn() {
+        return issueComponentsColumn - 1;
     }
 
     public int getIssueStatusColumn() {
