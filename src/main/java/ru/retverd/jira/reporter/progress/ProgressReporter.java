@@ -69,12 +69,7 @@ class ProgressReporter {
         System.out.format("done!%n");
     }
 
-    public void connectToJIRA(String login, String pass) throws IOException, URISyntaxException {
-        // TODO handle incorrect credentials!
-        JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-        URI uri = new URI(properties.getJiraURL());
-        jiraClient = factory.createWithBasicHttpAuthentication(uri, login, pass);
-
+    private void checkConnectionToJira(String errorMessage) throws IOException {
         try {
             ServerInfo si = jiraClient.getMetadataClient().getServerInfo().claim();
             System.out.println("Just connected to Jira instance v." + si.getVersion());
@@ -84,12 +79,26 @@ class ProgressReporter {
             if (statusCode.isPresent()) {
                 // Handle exception for incorrect credentials
                 if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
-                    System.out.println("Authentication error! Please check your credentials!");
+                    System.out.println(errorMessage);
                     return;
                 }
             }
             throw e;
         }
+    }
+
+    public void connectToJiraWithCredentials(String login,String pass) throws IOException, URISyntaxException {
+        // TODO handle incorrect credentials!
+        JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+        jiraClient = factory.createWithBasicHttpAuthentication(new URI(properties.getJiraURL()), login, pass);
+        checkConnectionToJira("Authentication error! Please check your credentials!");
+    }
+
+    public void connectToJiraAnonymously() throws IOException, URISyntaxException {
+        // TODO handle missing access!
+        JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+        jiraClient = factory.createWithAnonymousAccess(new URI(properties.getJiraURL()));
+        checkConnectionToJira("Anonymous access is prohibited!");
     }
 
     public void disconnectFromJIRA() throws IOException {
@@ -126,7 +135,7 @@ class ProgressReporter {
                     publishIssueDetails(currentRow, currentCell.getStringCellValue());
 
                     // Walk through linked issues and subtasks and put add rows with details
-                    boolean flag = properties.getIssueSummaryFill();
+                    boolean flag = properties.isIssueSummaryFill();
                     properties.setIssueSummaryFill(true);
                     publishDependentIssues(sheet, currentCell.getStringCellValue());
                     properties.setIssueSummaryFill(flag);
@@ -156,7 +165,7 @@ class ProgressReporter {
         // Refresh all formulas if required
         // Leads to exceptions on some Excel files with error message: Unexpected ptg class (org.apache.poi.ss.formula.ptg.ArrayPtg)
         // See https://github.com/retverd/jira-progress-reporter/issues/1 (Problems with evaluateAllFormulaCells)
-        if (properties.getRecalculateFormulas()) {
+        if (properties.isRecalculateFormulas()) {
             System.out.format("Recalculating formulas...");
             XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
             System.out.format("done!%n");
@@ -195,12 +204,12 @@ class ProgressReporter {
 
         System.out.println("Retrieving issue " + issueKey);
         Issue issue = jiraClient.getIssueClient().getIssue(issueKey).claim();
-        if (properties.getIssueSummaryFill()) {
+        if (properties.isIssueSummaryFill()) {
             row.getCell(properties.getIssueSummaryColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary());
         }
 
         TimeTracking time = issue.getTimeTracking();
-        if(time != null) {
+        if (time != null) {
             row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getOriginalEstimateMinutes()));
             row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getTimeSpentMinutes()));
             row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getRemainingEstimateMinutes()));
@@ -304,5 +313,9 @@ class ProgressReporter {
 
     private static double toHours(Integer value) {
         return (double) (value == null ? 0 : value) / 60;
+    }
+
+    public boolean isJiraAnonymouslyAccessible() {
+        return properties.isJiraAnonymousAccess();
     }
 }

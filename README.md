@@ -19,6 +19,7 @@ I'm not a Java expert, I've just automated some reporting routines to simplify m
 * Only sub-tasks and issues linked by "has part" will be listed during unfold;
 * Links for sub-tasks are not being analyzed;
 * Use Java 7u67+ for Windows to avoid problems with column auto sizing;
+* Time in report is only in hours;
 * ...
 
 # how to use

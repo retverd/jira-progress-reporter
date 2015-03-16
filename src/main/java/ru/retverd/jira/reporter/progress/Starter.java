@@ -19,29 +19,31 @@ public class Starter {
         // Load and check required files
         ProgressReporter reportHandler = new ProgressReporter(args[0], args[1]);
 
-        // Request credentials for JIRA
-        // TODO handle missing credentials!
-        if (args.length == 4) {
-            login = args[2];
-            pass = args[3];
+        if (reportHandler.isJiraAnonymouslyAccessible()) {
+            reportHandler.connectToJiraAnonymously();
         } else {
-            Console console = System.console();
-            System.out.print(loginPrompt);
-            if (console == null) {
-                Scanner in = new Scanner(System.in);
-                login = in.next();
-                System.out.print(passPrompt);
-                pass = in.next();
-                in.close();
+            // Request credentials for JIRA
+            // TODO handle missing credentials!
+            if (args.length == 4) {
+                login = args[2];
+                pass = args[3];
             } else {
-                login = console.readLine();
-                System.out.print(passPrompt);
-                pass = new String(console.readPassword());
+                Console console = System.console();
+                System.out.print(loginPrompt);
+                if (console == null) {
+                    Scanner in = new Scanner(System.in);
+                    login = in.next();
+                    System.out.print(passPrompt);
+                    pass = in.next();
+                    in.close();
+                } else {
+                    login = console.readLine();
+                    System.out.print(passPrompt);
+                    pass = new String(console.readPassword());
+                }
             }
+            reportHandler.connectToJiraWithCredentials(login, pass);
         }
-
-        // Connect to JIRA
-        reportHandler.connectToJIRA(login, pass);
 
         try {
             // Update report with new values from Jira

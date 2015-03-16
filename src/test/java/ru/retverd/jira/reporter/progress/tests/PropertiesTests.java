@@ -90,7 +90,7 @@ public class PropertiesTests {
             Assert.fail("No assertion was expected, but exception " + e.getClass() + " with message \"" + e.getMessage() + "\" was thrown!");
         }
 
-        Assert.assertEquals(props.getIssueSummaryFill(), false, "Incorrect value used by default");
+        Assert.assertEquals(props.isIssueSummaryFill(), false, "Incorrect value used by default");
     }
 
     @Test
@@ -114,8 +114,8 @@ public class PropertiesTests {
         } catch (Exception e) {
             Assert.fail("No assertion was expected, but exception " + e.getClass() + " with message \"" + e.getMessage() + "\" was thrown!");
         }
-        Assert.assertEquals(sample.getIssueSummaryFill(), true, "Incorrect result for property excel.issue.summary.fill");
-        Assert.assertEquals(sample.getRecalculateFormulas(), false, "Incorrect result for property excel.recalculate.formulas");
+        Assert.assertEquals(sample.isIssueSummaryFill(), true, "Incorrect result for property excel.issue.summary.fill");
+        Assert.assertEquals(sample.isRecalculateFormulas(), false, "Incorrect result for property excel.recalculate.formulas");
         Assert.assertEquals(sample.getReportFilenamePattern(), "yyyy.MM.dd_HH_mm_ss", "Incorrect result for property report.filename.pattern");
     }
 }

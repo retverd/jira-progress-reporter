@@ -9,6 +9,7 @@ import java.util.Properties;
 public class PropertyHolder {
     static private final String JIRA_URL_NAME = "jira.url";
     static private final String JIRA_PROXY = "jira.proxy";
+    static private final String JIRA_ANONYMOUS_ACCESS = "jira.access.anonymously";
     static private final String REGULAR_TAB_MARKER = "excel.tab.regular.marker";
     static private final String FORBIDDEN_TAB_MARKER = "excel.tab.forbidden.marker";
     static private final String UPDATE_ROW = "excel.update.row";
@@ -33,11 +34,12 @@ public class PropertyHolder {
     // Divider between proxy host and port
     static private final String PROXY_DIVIDER = ":";
     // First value is default
-    static private final String[] summaryFillValues = {"n", "y"};
-    static private final String[] recalculateFormulasValues = {"n", "y"};
+    static private final String[] yesNoValues = {"n", "y"};
 
     // Where to connect
     private String jiraURL;
+    // Should authentication be used
+    private boolean jiraAnonymousAccess;
     // Tabs that starts with this string will be processed
     private String regularTabMarker;
     // Tab that starts with this string contains issues where time should not be estimated or logged
@@ -58,9 +60,9 @@ public class PropertyHolder {
     private int issueStatusColumn;
     // List of prefixes (with hyphen) for issues in project(s)
     private String[] issueKeyPrefixList;
-    // Overwrite issue summary (y/n)
+    // Overwrite issue summary
     private boolean issueSummaryFill;
-    // Recalculate all formulas in report (y/n)
+    // Recalculate all formulas in report
     private boolean recalculateFormulas;
     // Value to indicate that specific issue should be tried to be unfolded
     private String unfoldMarker;
@@ -104,9 +106,11 @@ public class PropertyHolder {
 
         issueKeyPrefixList = getStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
 
-        issueSummaryFill = isActionRequested(getStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
+        issueSummaryFill = isActionRequested(getStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, yesNoValues, propertiesFile));
 
-        recalculateFormulas = isActionRequested(getStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
+        recalculateFormulas = isActionRequested(getStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, yesNoValues, propertiesFile));
+
+        jiraAnonymousAccess = isActionRequested(getStringPropertyWithDefaults(properties, JIRA_ANONYMOUS_ACCESS, yesNoValues, propertiesFile));
 
         // Optional, no need to check if value is missing
         reportFilenamePattern = properties.getProperty(REPORT_FILENAME_PATTERN);
@@ -226,12 +230,16 @@ public class PropertyHolder {
         return issueKeyPrefixList;
     }
 
-    public boolean getIssueSummaryFill() {
+    public boolean isIssueSummaryFill() {
         return issueSummaryFill;
     }
 
-    public boolean getRecalculateFormulas() {
+    public boolean isRecalculateFormulas() {
         return recalculateFormulas;
+    }
+
+    public boolean isJiraAnonymousAccess() {
+        return jiraAnonymousAccess;
     }
 
     public String getReportFilenamePattern() {
