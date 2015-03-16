@@ -1,5 +1,18 @@
 package ru.retverd.jira.reporter.progress;
 
+import com.atlassian.jira.rest.client.api.JiraRestClient;
+import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
+import com.atlassian.jira.rest.client.api.RestClientException;
+import com.atlassian.jira.rest.client.api.domain.*;
+import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
+import com.google.common.base.Optional;
+import org.apache.poi.POIXMLException;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.*;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,25 +21,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Locale;
-
-import com.atlassian.jira.rest.client.api.domain.*;
-import org.apache.poi.POIXMLException;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
-import com.atlassian.jira.rest.client.api.JiraRestClient;
-import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
-import com.atlassian.jira.rest.client.api.RestClientException;
-import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
-import com.google.common.base.Optional;
 
 public class ProgressReporter {
     // Divider between project prefix and issue number
@@ -113,7 +107,7 @@ public class ProgressReporter {
             if (sheetName.contains(properties.getRegularTabMarker())) {
                 System.out.println("Processing sheet " + sheetName.replace(properties.getRegularTabMarker(), "") + "...");
                 XSSFRow currentRow = sheet.getRow(properties.getUpdateRow());
-                XSSFCell currentCell = currentRow.getCell(properties.getUpdateColumn(),Row.CREATE_NULL_AS_BLANK);
+                XSSFCell currentCell = currentRow.getCell(properties.getUpdateColumn(), Row.CREATE_NULL_AS_BLANK);
                 currentCell.setCellValue(reportHeader.withLocale(Locale.ENGLISH).print(today));
                 if (isUnfoldRequired(sheet)) {
                     // Remove all rows below
@@ -128,7 +122,7 @@ public class ProgressReporter {
                     }
                     // Publish details for root issue
                     currentRow = sheet.getRow(properties.getStartProcessingRow());
-                    currentCell = currentRow.getCell(properties.getIssueKeyColumn(),Row.CREATE_NULL_AS_BLANK);
+                    currentCell = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
                     publishIssueDetails(currentRow, currentCell.getStringCellValue());
 
                     // Walk through linked issues and subtasks and put add rows with details
@@ -137,12 +131,12 @@ public class ProgressReporter {
                     publishDependentIssues(sheet, currentCell.getStringCellValue());
                     properties.setIssueSummaryFill(flag);
                     // Remove unfold marker
-                    currentRow.getCell(properties.getUnfoldMarkerColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue("");
+                    currentRow.getCell(properties.getUnfoldMarkerColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("");
                 } else {
                     int rowNumber = properties.getStartProcessingRow();
                     currentRow = sheet.getRow(rowNumber++);
                     while (currentRow != null) {
-                        currentCell = currentRow.getCell(properties.getIssueKeyColumn(),Row.CREATE_NULL_AS_BLANK);
+                        currentCell = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
                         if (currentCell != null) {
                             if (isIssueInScope(currentCell.getStringCellValue())) {
                                 publishIssueDetails(currentRow, currentCell.getStringCellValue());
@@ -170,7 +164,7 @@ public class ProgressReporter {
     }
 
     public void saveReport(String fileWithReport) throws IOException {
-	    String notification = "Rewriting";
+        String notification = "Rewriting";
 
         if (properties.getReportFilenamePattern() != null) {
             DateTimeFormatter dateFormForReport = DateTimeFormat.forPattern(properties.getReportFilenamePattern());
@@ -186,7 +180,7 @@ public class ProgressReporter {
     }
 
     public void publishIssueDetails(XSSFRow row, String issueKey) {
-        XSSFCell cell = row.getCell(properties.getIssueKeyColumn(),Row.CREATE_NULL_AS_BLANK);
+        XSSFCell cell = row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
 
         // Add hyperlink to current issue if required
         if (cell.getHyperlink() == null) {
@@ -194,7 +188,7 @@ public class ProgressReporter {
         }
 
         // Add hyperlink to parent issue if required
-        cell = row.getCell(properties.getIssueParentKeyColumn(),Row.CREATE_NULL_AS_BLANK);
+        cell = row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK);
         if ((cell.getHyperlink() == null) && (cell.getStringCellValue() != null)) {
             addHyperLink(cell);
         }
@@ -204,10 +198,10 @@ public class ProgressReporter {
         if (properties.getIssueSummaryFill()) {
             row.getCell(properties.getIssueSummaryColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary());
         }
-        row.getCell(properties.getIssueEstimationColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getOriginalEstimateMinutes()));
-        row.getCell(properties.getIssueSpentColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getTimeSpentMinutes()));
-        row.getCell(properties.getIssueRemainingColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getRemainingEstimateMinutes()));
-        row.getCell(properties.getIssueStatusColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
+        row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getOriginalEstimateMinutes()));
+        row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getTimeSpentMinutes()));
+        row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getRemainingEstimateMinutes()));
+        row.getCell(properties.getIssueStatusColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
     }
 
     public boolean isIssueInScope(String issueKey) {
@@ -225,9 +219,9 @@ public class ProgressReporter {
             // Handle referenced issues
             // TODO Testing required
             for (IssueLink issueLink : issueLinks) {
-                if(issueLink.getIssueLinkType().getDirection().equals(IssueLinkType.Direction.OUTBOUND) && issueLink.getIssueLinkType().getName().equals(PART_OF_FLAG)){
+                if (issueLink.getIssueLinkType().getDirection().equals(IssueLinkType.Direction.OUTBOUND) && issueLink.getIssueLinkType().getName().equals(PART_OF_FLAG)) {
                     appendNewIssueRecord(sheet, PART_OF_VALUE, issueLink.getTargetIssueKey(), issueKey);
-                    publishDependentIssues(sheet,issueLink.getTargetIssueKey());
+                    publishDependentIssues(sheet, issueLink.getTargetIssueKey());
                 }
             }
         }
@@ -247,9 +241,9 @@ public class ProgressReporter {
 
         row = sheet.createRow(sheet.getLastRowNum() + 1);
         createCells(row);
-        row.getCell(properties.getIssueKeyColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(issueKey);
-        row.getCell(properties.getIssueRelationColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
-        row.getCell(properties.getIssueParentKeyColumn(),Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
+        row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issueKey);
+        row.getCell(properties.getIssueRelationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
+        row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
         publishIssueDetails(row, issueKey);
     }
 
@@ -293,8 +287,8 @@ public class ProgressReporter {
         if (properties.getUnfoldMarker() != null) {
             // Root issue is expected only in first row
             XSSFRow currentRow = sheet.getRow(properties.getStartProcessingRow());
-            String issueKey = currentRow.getCell(properties.getIssueKeyColumn(),Row.CREATE_NULL_AS_BLANK).getStringCellValue();
-            String unfoldMarker = currentRow.getCell(properties.getUnfoldMarkerColumn(),Row.CREATE_NULL_AS_BLANK).getStringCellValue();
+            String issueKey = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).getStringCellValue();
+            String unfoldMarker = currentRow.getCell(properties.getUnfoldMarkerColumn(), Row.CREATE_NULL_AS_BLANK).getStringCellValue();
             if (isIssueInScope(issueKey) && properties.getUnfoldMarker().equals(unfoldMarker)) {
                 return true;
             }

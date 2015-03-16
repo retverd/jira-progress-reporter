@@ -33,8 +33,8 @@ public class PropertyHolder {
     // Divider between proxy host and port
     static private final String PROXY_DIVIDER = ":";
     // First value is default
-    static private final String[] summaryFillValues = { "n", "y" };
-    static private final String[] recalculateFormulasValues = { "n", "y" };
+    static private final String[] summaryFillValues = {"n", "y"};
+    static private final String[] recalculateFormulasValues = {"n", "y"};
 
     // Where to connect
     private String jiraURL;
@@ -70,195 +70,195 @@ public class PropertyHolder {
     private int issueParentKeyColumn;
 
     public PropertyHolder(String propertiesFile) throws IOException {
-	Properties properties = new Properties();
+        Properties properties = new Properties();
 
-	// Load properties from given file
-	InputStream pathToPropertiesFile = new FileInputStream(propertiesFile);
-	properties.load(pathToPropertiesFile);
-	pathToPropertiesFile.close();
+        // Load properties from given file
+        InputStream pathToPropertiesFile = new FileInputStream(propertiesFile);
+        properties.load(pathToPropertiesFile);
+        pathToPropertiesFile.close();
 
-	// I need a hint how to init all variables better :)
-	jiraURL = setStringProperty(properties, JIRA_URL_NAME, propertiesFile);
+        // I need a hint how to init all variables better :)
+        jiraURL = setStringProperty(properties, JIRA_URL_NAME, propertiesFile);
 
-	regularTabMarker = setStringProperty(properties, REGULAR_TAB_MARKER, propertiesFile);
+        regularTabMarker = setStringProperty(properties, REGULAR_TAB_MARKER, propertiesFile);
 
-	forbiddenTabMarker = setStringProperty(properties, FORBIDDEN_TAB_MARKER, propertiesFile);
+        forbiddenTabMarker = setStringProperty(properties, FORBIDDEN_TAB_MARKER, propertiesFile);
 
-	updateRow = setIntProperty(properties, UPDATE_ROW, propertiesFile);
+        updateRow = setIntProperty(properties, UPDATE_ROW, propertiesFile);
 
-	updateColumn = setIntProperty(properties, UPDATE_COLUMN, propertiesFile);
+        updateColumn = setIntProperty(properties, UPDATE_COLUMN, propertiesFile);
 
-	issueSummaryColumn = setIntProperty(properties, ISSUE_SUMMARY_COLUMN, propertiesFile);
+        issueSummaryColumn = setIntProperty(properties, ISSUE_SUMMARY_COLUMN, propertiesFile);
 
-	issueKeyColumn = setIntProperty(properties, ISSUE_KEY_COLUMN, propertiesFile);
+        issueKeyColumn = setIntProperty(properties, ISSUE_KEY_COLUMN, propertiesFile);
 
-	issueEstimationColumn = setIntProperty(properties, ISSUE_ESTIMATION_COLUMN, propertiesFile);
+        issueEstimationColumn = setIntProperty(properties, ISSUE_ESTIMATION_COLUMN, propertiesFile);
 
-	issueSpentColumn = setIntProperty(properties, ISSUE_SPENT_COLUMN, propertiesFile);
+        issueSpentColumn = setIntProperty(properties, ISSUE_SPENT_COLUMN, propertiesFile);
 
-	issueRemainingColumn = setIntProperty(properties, ISSUE_REMAINING_COLUMN, propertiesFile);
+        issueRemainingColumn = setIntProperty(properties, ISSUE_REMAINING_COLUMN, propertiesFile);
 
-	issueStatusColumn = setIntProperty(properties, ISSUE_STATUS_COLUMN, propertiesFile);
+        issueStatusColumn = setIntProperty(properties, ISSUE_STATUS_COLUMN, propertiesFile);
 
-	startProcessingRow = setIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
+        startProcessingRow = setIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
 
-	issueKeyPrefixList = setStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
+        issueKeyPrefixList = setStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
 
-	issueSummaryFill = isActionRequested(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
+        issueSummaryFill = isActionRequested(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
-	recalculateFormulas = isActionRequested(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
+        recalculateFormulas = isActionRequested(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
 
-	// Optional, no need to check if value is missing
-	reportFilenamePattern = properties.getProperty(REPORT_FILENAME_PATTERN);
+        // Optional, no need to check if value is missing
+        reportFilenamePattern = properties.getProperty(REPORT_FILENAME_PATTERN);
 
-	// Optional, no need to check if value is missing
-	unfoldMarker = properties.getProperty(UNFOLD_MARKER);
-	if (unfoldMarker != null) {
-	    unfoldMarkerColumn = setIntProperty(properties, UNFOLD_MARKER_COLUMN, propertiesFile);
-	    issueRelationColumn = setIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
-	    issueParentKeyColumn = setIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
-	}
+        // Optional, no need to check if value is missing
+        unfoldMarker = properties.getProperty(UNFOLD_MARKER);
+        if (unfoldMarker != null) {
+            unfoldMarkerColumn = setIntProperty(properties, UNFOLD_MARKER_COLUMN, propertiesFile);
+            issueRelationColumn = setIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
+            issueParentKeyColumn = setIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
+        }
 
-    // Optional, no need to check if value is missing
-    String proxy = properties.getProperty(JIRA_PROXY);
-    if (proxy != null) {
-        String[] proxyParameters = proxy.split(PROXY_DIVIDER);
-        System.setProperty("https.proxyHost", proxyParameters[0]);
-        System.setProperty("https.proxyPort", proxyParameters[1]);
-    }
+        // Optional, no need to check if value is missing
+        String proxy = properties.getProperty(JIRA_PROXY);
+        if (proxy != null) {
+            String[] proxyParameters = proxy.split(PROXY_DIVIDER);
+            System.setProperty("https.proxyHost", proxyParameters[0]);
+            System.setProperty("https.proxyPort", proxyParameters[1]);
+        }
     }
 
     private String setStringProperty(Properties props, String propName, String fileName) throws IOException {
-	if (props.getProperty(propName) == null) {
-	    throw new IOException("Missing " + propName + " property in file " + fileName);
-	}
-	return props.getProperty(propName);
+        if (props.getProperty(propName) == null) {
+            throw new IOException("Missing " + propName + " property in file " + fileName);
+        }
+        return props.getProperty(propName);
     }
 
     private String[] setStringArrayProperty(Properties props, String propName, String fileName) throws IOException {
-	if (props.getProperty(propName) == null) {
-	    throw new IOException("Missing " + propName + " property in file " + fileName);
-	}
-	return props.getProperty(propName).split(PROPERTIES_DIVIDER);
+        if (props.getProperty(propName) == null) {
+            throw new IOException("Missing " + propName + " property in file " + fileName);
+        }
+        return props.getProperty(propName).split(PROPERTIES_DIVIDER);
     }
 
     private String setStringPropertyWithDefaults(Properties props, String propName, String[] defValues, String fileName) throws IOException {
-	String propertyValue = props.getProperty(propName, defValues[0]);
+        String propertyValue = props.getProperty(propName, defValues[0]);
 
-	if (propertyValue == null) {
-	    throw new IOException("Missing " + propName + " property in file " + fileName);
-	}
-	if (!Arrays.asList(defValues).contains(propertyValue)) {
-	    String expectedValues = defValues[0];
-	    for (int i = 1; i < defValues.length; i++) {
-		expectedValues = expectedValues + ", " + defValues[i];
-	    }
-	    throw new IOException(propName + " property in file " + fileName + " contains inacceptable value: " + propertyValue + ". Only values "
-		    + expectedValues + " are acceptable.");
-	}
-	return propertyValue;
+        if (propertyValue == null) {
+            throw new IOException("Missing " + propName + " property in file " + fileName);
+        }
+        if (!Arrays.asList(defValues).contains(propertyValue)) {
+            String expectedValues = defValues[0];
+            for (int i = 1; i < defValues.length; i++) {
+                expectedValues = expectedValues + ", " + defValues[i];
+            }
+            throw new IOException(propName + " property in file " + fileName + " contains inacceptable value: " + propertyValue + ". Only values "
+                    + expectedValues + " are acceptable.");
+        }
+        return propertyValue;
     }
 
     private int setIntProperty(Properties props, String propName, String fileName) throws IOException {
-	if (props.getProperty(propName) == null) {
-	    throw new IOException("Missing " + propName + " property in file " + fileName);
-	}
-	try {
-	    return Integer.parseInt(props.getProperty(propName));
-	} catch (NumberFormatException e) {
-	    throw new IOException("Integer value is expected in property " + propName + " in file " + fileName);
-	}
+        if (props.getProperty(propName) == null) {
+            throw new IOException("Missing " + propName + " property in file " + fileName);
+        }
+        try {
+            return Integer.parseInt(props.getProperty(propName));
+        } catch (NumberFormatException e) {
+            throw new IOException("Integer value is expected in property " + propName + " in file " + fileName);
+        }
     }
 
     private boolean isActionRequested(String value) {
-	if (value.equals("y")) {
-	    return true;
-	} else {
-	    return false;
-	}
+        if (value.equals("y")) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public String getJiraURL() {
-	return jiraURL;
+        return jiraURL;
     }
 
     public String getRegularTabMarker() {
-	return regularTabMarker;
+        return regularTabMarker;
     }
 
     public String getForbiddenTabMarker() {
-	return forbiddenTabMarker;
+        return forbiddenTabMarker;
     }
 
     public int getUpdateRow() {
-	return updateRow - 1;
+        return updateRow - 1;
     }
 
     public int getUpdateColumn() {
-	return updateColumn - 1;
+        return updateColumn - 1;
     }
 
     public int getStartProcessingRow() {
-	return startProcessingRow - 1;
+        return startProcessingRow - 1;
     }
 
     public int getIssueSummaryColumn() {
-	return issueSummaryColumn - 1;
+        return issueSummaryColumn - 1;
     }
 
     public int getIssueKeyColumn() {
-	return issueKeyColumn - 1;
+        return issueKeyColumn - 1;
     }
 
     public int getIssueEstimationColumn() {
-	return issueEstimationColumn - 1;
+        return issueEstimationColumn - 1;
     }
 
     public int getIssueSpentColumn() {
-	return issueSpentColumn - 1;
+        return issueSpentColumn - 1;
     }
 
     public int getIssueRemainingColumn() {
-	return issueRemainingColumn - 1;
+        return issueRemainingColumn - 1;
     }
 
     public int getIssueStatusColumn() {
-	return issueStatusColumn - 1;
+        return issueStatusColumn - 1;
     }
 
     public String[] getIssueKeyPrefixList() {
-	return issueKeyPrefixList;
+        return issueKeyPrefixList;
     }
 
     public boolean getIssueSummaryFill() {
-	return issueSummaryFill;
+        return issueSummaryFill;
     }
 
     public boolean getRecalculateFormulas() {
-	return recalculateFormulas;
+        return recalculateFormulas;
     }
 
     public String getReportFilenamePattern() {
-	return reportFilenamePattern;
+        return reportFilenamePattern;
     }
 
     public String getUnfoldMarker() {
-	return unfoldMarker;
+        return unfoldMarker;
     }
 
     public int getUnfoldMarkerColumn() {
-	return unfoldMarkerColumn - 1;
+        return unfoldMarkerColumn - 1;
     }
 
     public int getIssueRelationColumn() {
-	return issueRelationColumn - 1;
+        return issueRelationColumn - 1;
     }
 
     public int getIssueParentKeyColumn() {
-	return issueParentKeyColumn - 1;
+        return issueParentKeyColumn - 1;
     }
-    
+
     public void setIssueSummaryFill(boolean newValue) {
-	issueSummaryFill = newValue;
+        issueSummaryFill = newValue;
     }
 }
