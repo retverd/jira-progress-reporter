@@ -72,7 +72,7 @@ public class PropertiesTests {
             Assert.fail("Exception expected, but not thrown!");
         } catch (IOException expected) {
             Assert.assertEquals(expected.getMessage(), "excel.issue.summary.fill property in file " + filename
-                    + " contains inacceptable value: yes. Only values n, y are acceptable.", "Wrong error message:");
+                    + " contains unacceptable value: yes. Only values n, y are acceptable.", "Wrong error message:");
         } catch (Exception e) {
             IOException exp = new IOException();
             Assert.fail("Wrong exception: expected [" + exp.getClass() + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());

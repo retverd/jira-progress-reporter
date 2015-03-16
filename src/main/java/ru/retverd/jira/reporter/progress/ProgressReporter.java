@@ -22,7 +22,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class ProgressReporter {
+class ProgressReporter {
     // Divider between project prefix and issue number
     static private final String ISSUE_DIVIDER = "-";
     // Underline hyperlinks
@@ -92,11 +92,11 @@ public class ProgressReporter {
         }
     }
 
-    public void disconnectFromJIRA() throws IOException, URISyntaxException {
+    public void disconnectFromJIRA() throws IOException {
         jiraClient.close();
     }
 
-    public void updateReport() throws Exception {
+    public void updateReport() {
         // Today
         DateTime today = new DateTime();
         DateTimeFormatter reportHeader = DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ");
@@ -179,7 +179,7 @@ public class ProgressReporter {
         System.out.format("done!%n");
     }
 
-    public void publishIssueDetails(XSSFRow row, String issueKey) {
+    void publishIssueDetails(XSSFRow row, String issueKey) {
         XSSFCell cell = row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
 
         // Add hyperlink to current issue if required
@@ -198,18 +198,24 @@ public class ProgressReporter {
         if (properties.getIssueSummaryFill()) {
             row.getCell(properties.getIssueSummaryColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary());
         }
-        row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getOriginalEstimateMinutes()));
-        row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getTimeSpentMinutes()));
-        row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(issue.getTimeTracking().getRemainingEstimateMinutes()));
+
+        TimeTracking time = issue.getTimeTracking();
+        if(time != null) {
+            row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getOriginalEstimateMinutes()));
+            row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getTimeSpentMinutes()));
+            row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getRemainingEstimateMinutes()));
+        } else {
+            throw new IllegalArgumentException("Time tracking is not supported for current Jira instance (" + properties.getJiraURL() + ").");
+        }
         row.getCell(properties.getIssueStatusColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
     }
 
-    public boolean isIssueInScope(String issueKey) {
+    boolean isIssueInScope(String issueKey) {
         String[] issueKeyParts = issueKey.split(ISSUE_DIVIDER);
         return Arrays.asList(properties.getIssueKeyPrefixList()).contains(issueKeyParts[0]);
     }
 
-    public void publishDependentIssues(XSSFSheet sheet, String issueKey) {
+    void publishDependentIssues(XSSFSheet sheet, String issueKey) {
         properties.setIssueSummaryFill(true);
 
         Issue rootIssue = jiraClient.getIssueClient().getIssue(issueKey).claim();
@@ -236,7 +242,7 @@ public class ProgressReporter {
         }
     }
 
-    public void appendNewIssueRecord(XSSFSheet sheet, String relation, String issueKey, String parentKey) {
+    void appendNewIssueRecord(XSSFSheet sheet, String relation, String issueKey, String parentKey) {
         XSSFRow row;
 
         row = sheet.createRow(sheet.getLastRowNum() + 1);
@@ -247,7 +253,7 @@ public class ProgressReporter {
         publishIssueDetails(row, issueKey);
     }
 
-    public void adjustCellsWidth(XSSFSheet sheet) {
+    void adjustCellsWidth(XSSFSheet sheet) {
         sheet.autoSizeColumn(properties.getIssueSummaryColumn());
         sheet.autoSizeColumn(properties.getIssueKeyColumn());
         sheet.autoSizeColumn(properties.getIssueRelationColumn());
@@ -259,7 +265,7 @@ public class ProgressReporter {
         sheet.autoSizeColumn(properties.getIssueStatusColumn());
     }
 
-    public void createCells(XSSFRow row) {
+    void createCells(XSSFRow row) {
         row.createCell(properties.getIssueSummaryColumn(), Cell.CELL_TYPE_STRING);
         row.createCell(properties.getIssueKeyColumn(), Cell.CELL_TYPE_STRING);
         row.createCell(properties.getIssueRelationColumn(), Cell.CELL_TYPE_STRING);
@@ -270,7 +276,7 @@ public class ProgressReporter {
         row.createCell(properties.getIssueStatusColumn(), Cell.CELL_TYPE_STRING);
     }
 
-    public void addHyperLink(XSSFCell cell) {
+    void addHyperLink(XSSFCell cell) {
         // Required for hyperlinks
         CreationHelper createHelper = workbook.getCreationHelper();
 
@@ -283,7 +289,7 @@ public class ProgressReporter {
         cell.setCellStyle(linkStyle);
     }
 
-    public boolean isUnfoldRequired(XSSFSheet sheet) {
+    boolean isUnfoldRequired(XSSFSheet sheet) {
         if (properties.getUnfoldMarker() != null) {
             // Root issue is expected only in first row
             XSSFRow currentRow = sheet.getRow(properties.getStartProcessingRow());
@@ -296,7 +302,7 @@ public class ProgressReporter {
         return false;
     }
 
-    static public double toHours(Integer value) {
+    private static double toHours(Integer value) {
         return (double) (value == null ? 0 : value) / 60;
     }
 }

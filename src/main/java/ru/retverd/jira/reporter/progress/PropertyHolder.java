@@ -78,35 +78,35 @@ public class PropertyHolder {
         pathToPropertiesFile.close();
 
         // I need a hint how to init all variables better :)
-        jiraURL = setStringProperty(properties, JIRA_URL_NAME, propertiesFile);
+        jiraURL = getStringProperty(properties, JIRA_URL_NAME, propertiesFile);
 
-        regularTabMarker = setStringProperty(properties, REGULAR_TAB_MARKER, propertiesFile);
+        regularTabMarker = getStringProperty(properties, REGULAR_TAB_MARKER, propertiesFile);
 
-        forbiddenTabMarker = setStringProperty(properties, FORBIDDEN_TAB_MARKER, propertiesFile);
+        forbiddenTabMarker = getStringProperty(properties, FORBIDDEN_TAB_MARKER, propertiesFile);
 
-        updateRow = setIntProperty(properties, UPDATE_ROW, propertiesFile);
+        updateRow = getIntProperty(properties, UPDATE_ROW, propertiesFile);
 
-        updateColumn = setIntProperty(properties, UPDATE_COLUMN, propertiesFile);
+        updateColumn = getIntProperty(properties, UPDATE_COLUMN, propertiesFile);
 
-        issueSummaryColumn = setIntProperty(properties, ISSUE_SUMMARY_COLUMN, propertiesFile);
+        issueSummaryColumn = getIntProperty(properties, ISSUE_SUMMARY_COLUMN, propertiesFile);
 
-        issueKeyColumn = setIntProperty(properties, ISSUE_KEY_COLUMN, propertiesFile);
+        issueKeyColumn = getIntProperty(properties, ISSUE_KEY_COLUMN, propertiesFile);
 
-        issueEstimationColumn = setIntProperty(properties, ISSUE_ESTIMATION_COLUMN, propertiesFile);
+        issueEstimationColumn = getIntProperty(properties, ISSUE_ESTIMATION_COLUMN, propertiesFile);
 
-        issueSpentColumn = setIntProperty(properties, ISSUE_SPENT_COLUMN, propertiesFile);
+        issueSpentColumn = getIntProperty(properties, ISSUE_SPENT_COLUMN, propertiesFile);
 
-        issueRemainingColumn = setIntProperty(properties, ISSUE_REMAINING_COLUMN, propertiesFile);
+        issueRemainingColumn = getIntProperty(properties, ISSUE_REMAINING_COLUMN, propertiesFile);
 
-        issueStatusColumn = setIntProperty(properties, ISSUE_STATUS_COLUMN, propertiesFile);
+        issueStatusColumn = getIntProperty(properties, ISSUE_STATUS_COLUMN, propertiesFile);
 
-        startProcessingRow = setIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
+        startProcessingRow = getIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
 
-        issueKeyPrefixList = setStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
+        issueKeyPrefixList = getStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
 
-        issueSummaryFill = isActionRequested(setStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
+        issueSummaryFill = isActionRequested(getStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, summaryFillValues, propertiesFile));
 
-        recalculateFormulas = isActionRequested(setStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
+        recalculateFormulas = isActionRequested(getStringPropertyWithDefaults(properties, RECALCULATE_FORMULAS, recalculateFormulasValues, propertiesFile));
 
         // Optional, no need to check if value is missing
         reportFilenamePattern = properties.getProperty(REPORT_FILENAME_PATTERN);
@@ -114,9 +114,9 @@ public class PropertyHolder {
         // Optional, no need to check if value is missing
         unfoldMarker = properties.getProperty(UNFOLD_MARKER);
         if (unfoldMarker != null) {
-            unfoldMarkerColumn = setIntProperty(properties, UNFOLD_MARKER_COLUMN, propertiesFile);
-            issueRelationColumn = setIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
-            issueParentKeyColumn = setIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
+            unfoldMarkerColumn = getIntProperty(properties, UNFOLD_MARKER_COLUMN, propertiesFile);
+            issueRelationColumn = getIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
+            issueParentKeyColumn = getIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
         }
 
         // Optional, no need to check if value is missing
@@ -128,21 +128,21 @@ public class PropertyHolder {
         }
     }
 
-    private String setStringProperty(Properties props, String propName, String fileName) throws IOException {
+    private String getStringProperty(Properties props, String propName, String fileName) throws IOException {
         if (props.getProperty(propName) == null) {
             throw new IOException("Missing " + propName + " property in file " + fileName);
         }
         return props.getProperty(propName);
     }
 
-    private String[] setStringArrayProperty(Properties props, String propName, String fileName) throws IOException {
+    private String[] getStringArrayProperty(Properties props, String propName, String fileName) throws IOException {
         if (props.getProperty(propName) == null) {
             throw new IOException("Missing " + propName + " property in file " + fileName);
         }
         return props.getProperty(propName).split(PROPERTIES_DIVIDER);
     }
 
-    private String setStringPropertyWithDefaults(Properties props, String propName, String[] defValues, String fileName) throws IOException {
+    private String getStringPropertyWithDefaults(Properties props, String propName, String[] defValues, String fileName) throws IOException {
         String propertyValue = props.getProperty(propName, defValues[0]);
 
         if (propertyValue == null) {
@@ -153,13 +153,13 @@ public class PropertyHolder {
             for (int i = 1; i < defValues.length; i++) {
                 expectedValues = expectedValues + ", " + defValues[i];
             }
-            throw new IOException(propName + " property in file " + fileName + " contains inacceptable value: " + propertyValue + ". Only values "
+            throw new IOException(propName + " property in file " + fileName + " contains unacceptable value: " + propertyValue + ". Only values "
                     + expectedValues + " are acceptable.");
         }
         return propertyValue;
     }
 
-    private int setIntProperty(Properties props, String propName, String fileName) throws IOException {
+    private int getIntProperty(Properties props, String propName, String fileName) throws IOException {
         if (props.getProperty(propName) == null) {
             throw new IOException("Missing " + propName + " property in file " + fileName);
         }
@@ -171,11 +171,7 @@ public class PropertyHolder {
     }
 
     private boolean isActionRequested(String value) {
-        if (value.equals("y")) {
-            return true;
-        } else {
-            return false;
-        }
+        return value.equals("y");
     }
 
     public String getJiraURL() {
