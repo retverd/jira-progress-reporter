@@ -66,8 +66,8 @@ public class PropertiesTests {
     }
 
     @Test
-    public void testInacceptableProperty() throws Exception {
-	String filename = "src\\test\\resources\\inacceptable.properties";
+    public void testOutOfListProperty() throws Exception {
+	String filename = "src\\test\\resources\\out_of_list.properties";
 	try {
 	    new PropertyHolder(filename);
 	    Assert.fail("Exception expected, but not thrown!");
