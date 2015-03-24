@@ -15,7 +15,7 @@ I'm not a Java expert, I've just automated some reporting routines to simplify m
 * Only xlsx files are expected to be supported;
 * Tested with JIRA v6.4#64014, v6.3.12#6343 and v6.4#64014;
 * Only one root issue per sheet is supported;
-* Root issue should be first;
+* Root issue should be first, other rows will be deleted;
 * Links for sub-tasks are not being analyzed;
 * Use Java 7u67+ for Windows to avoid problems with column auto sizing;
 * Time in report is only in hours;
