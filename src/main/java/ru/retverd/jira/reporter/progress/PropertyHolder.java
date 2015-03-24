@@ -29,6 +29,8 @@ public class PropertyHolder {
     static private final String REPORT_FILENAME_PATTERN = "report.filename.pattern";
     static private final String UNFOLD_MARKER = "excel.unfold.marker";
     static private final String UNFOLD_MARKER_COLUMN = "excel.unfold.marker.column";
+    static private final String UNFOLD_SUBTASKS = "excel.unfold.subtasks";
+    static private final String UNFOLD_LINKS_LIST = "excel.unfold.links.list";
     static private final String ISSUE_RELATION_COLUMN = "excel.issue.relation.column";
     static private final String ISSUE_PARENT_KEY_COLUMN = "excel.issue.parent.key.column";
     // Divider for properties lists
@@ -70,6 +72,10 @@ public class PropertyHolder {
     private boolean recalculateFormulas;
     // Value to indicate that specific issue should be tried to be unfolded
     private String unfoldMarker;
+    // List of links that should be unfold
+    private String[] unfoldLinksList;
+    // Unfold sub-tasks or not?
+    private boolean unfoldSubtasks;
     // Column numbers for corresponding values
     private int unfoldMarkerColumn;
     private int issueRelationColumn;
@@ -129,6 +135,12 @@ public class PropertyHolder {
             unfoldMarkerColumn = getIntProperty(properties, UNFOLD_MARKER_COLUMN, propertiesFile);
             issueRelationColumn = getIntProperty(properties, ISSUE_RELATION_COLUMN, propertiesFile);
             issueParentKeyColumn = getIntProperty(properties, ISSUE_PARENT_KEY_COLUMN, propertiesFile);
+            if (properties.getProperty(UNFOLD_LINKS_LIST) != null) {
+                unfoldLinksList = properties.getProperty(UNFOLD_LINKS_LIST).split(PROPERTIES_DIVIDER);
+            } else {
+                unfoldLinksList = null;
+            }
+            unfoldSubtasks = isActionRequested(getStringPropertyWithDefaults(properties, UNFOLD_SUBTASKS, yesNoValues, propertiesFile));
         }
 
         // Optional, no need to check if value is missing
@@ -157,9 +169,6 @@ public class PropertyHolder {
     private String getStringPropertyWithDefaults(Properties props, String propName, String[] defValues, String fileName) throws IOException {
         String propertyValue = props.getProperty(propName, defValues[0]);
 
-        if (propertyValue == null) {
-            throw new IOException("Missing " + propName + " property in file " + fileName);
-        }
         if (!Arrays.asList(defValues).contains(propertyValue)) {
             String expectedValues = defValues[0];
             for (int i = 1; i < defValues.length; i++) {
@@ -268,6 +277,14 @@ public class PropertyHolder {
 
     public int getUnfoldMarkerColumn() {
         return unfoldMarkerColumn - 1;
+    }
+
+    public String[] getUnfoldLinksList() {
+        return unfoldLinksList;
+    }
+
+    public boolean isUnfoldSubtasks() {
+        return unfoldSubtasks;
     }
 
     public int getIssueRelationColumn() {

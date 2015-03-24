@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 
@@ -32,18 +33,16 @@ class ProgressReporter {
     static private final short LINK_FONT_COLOR = IndexedColors.BLUE.getIndex();
     // Status code for wrong credentials
     static private final Integer AUTH_FAIL_STATUS = 401;
-    // Name of Link type for "part of" / "" relation
-    static private final String PART_OF_FLAG = "Composition";
     // Joiner for Jira url from properties and issue key
-    static private final String LINK_MISSING_CHAIN = "/i#browse/";
-    // Values for indication of relation between issues in report
-    static private final String PART_OF_VALUE = "part of";
+    static private final String LINK_MISSING_CHAIN = "/browse/";
+    // String for subtasks
     static private final String SUBTASK_OF_VALUE = "subtask of";
 
     private PropertyHolder properties;
     private XSSFWorkbook workbook;
     private Font hlinkFont;
     private JiraRestClient jiraClient;
+    private HashMap<String, String> linksList;
 
     public ProgressReporter(String fileWithProperties, String fileWithReportTemplate) throws IOException {
         // Load and check file with properties
@@ -80,12 +79,12 @@ class ProgressReporter {
             if (statusCode.isPresent()) {
                 // Handle exception for incorrect credentials
                 if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
-                    System.out.println(errorMessage);
-                    return;
+                    throw new IOException("Authentication error! Please check your credentials!");
                 }
             }
             throw e;
         }
+        initObjects();
     }
 
     public void connectToJiraWithCredentials(String login,String pass) throws IOException, URISyntaxException {
@@ -104,6 +103,28 @@ class ProgressReporter {
 
     public void disconnectFromJIRA() throws IOException {
         jiraClient.close();
+    }
+
+    private void initObjects() throws IOException {
+        linksList = new HashMap<String, String>();
+        Iterable<IssuelinksType> issueLinkTypes = jiraClient.getMetadataClient().getIssueLinkTypes().claim();
+        String[] links = properties.getUnfoldLinksList();
+        if (links != null) {
+            for (String link : links) {
+                for (IssuelinksType issueLinkType : issueLinkTypes) {
+                    if (issueLinkType.getInward().equals(link)) {
+                        linksList.put(link, issueLinkType.getOutward());
+                        break;
+                    } else if (issueLinkType.getOutward().equals(link)) {
+                        linksList.put(link, issueLinkType.getInward());
+                        break;
+                    }
+                }
+                if (!linksList.containsKey(link)) {
+                    throw new IOException("Link '" + link + "' is missing on server!");
+                }
+            }
+        }
     }
 
     public void updateReport() {
@@ -248,8 +269,8 @@ class ProgressReporter {
             // Handle referenced issues
             // TODO Testing required
             for (IssueLink issueLink : issueLinks) {
-                if (issueLink.getIssueLinkType().getDirection().equals(IssueLinkType.Direction.OUTBOUND) && issueLink.getIssueLinkType().getName().equals(PART_OF_FLAG)) {
-                    appendNewIssueRecord(sheet, PART_OF_VALUE, issueLink.getTargetIssueKey(), issueKey);
+                if (linksList.containsKey(issueLink.getIssueLinkType().getDescription())) {
+                    appendNewIssueRecord(sheet, linksList.get(issueLink.getIssueLinkType().getDescription()), issueLink.getTargetIssueKey(), issueKey);
                     publishDependentIssues(sheet, issueLink.getTargetIssueKey());
                 }
             }
@@ -257,7 +278,7 @@ class ProgressReporter {
 
         Iterable<Subtask> subTasks = rootIssue.getSubtasks();
 
-        if (subTasks != null) {
+        if ((subTasks != null) && (properties.isUnfoldSubtasks())) {
             // Handle subtasks
             for (Subtask subtask : subTasks) {
                 appendNewIssueRecord(sheet, SUBTASK_OF_VALUE, subtask.getIssueKey(), issueKey);

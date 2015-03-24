@@ -13,10 +13,9 @@ I'm not a Java expert, I've just automated some reporting routines to simplify m
 
 # limitations
 * Only xlsx files are expected to be supported;
-* Tested with JIRA v6.3.12#6343;
+* Tested with JIRA v6.4#64014, v6.3.12#6343 and v6.4#64014;
 * Only one root issue per sheet is supported;
 * Root issue should be first;
-* Only sub-tasks and issues linked by "has part" will be listed during unfold;
 * Links for sub-tasks are not being analyzed;
 * Use Java 7u67+ for Windows to avoid problems with column auto sizing;
 * Time in report is only in hours;
