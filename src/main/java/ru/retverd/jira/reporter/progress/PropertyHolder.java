@@ -23,7 +23,7 @@ public class PropertyHolder {
     static private final String ISSUE_STATUS_COLUMN = "excel.issue.status.column";
     static private final String ISSUE_COMPONENTS_COLUMN = "excel.issue.components.column";
     static private final String ISSUE_ASSIGNEE_COLUMN = "excel.issue.assignee.column";
-    static private final String ISSUE_KEY_PREFIX = "excel.issue.key.prefix";
+    static private final String PROJECT_KEY = "excel.project.key";
     static private final String ISSUE_SUMMARY_FILL = "excel.issue.summary.fill";
     static private final String RECALCULATE_FORMULAS = "excel.recalculate.formulas";
     static private final String REPORT_FILENAME_PATTERN = "report.filename.pattern";
@@ -33,6 +33,10 @@ public class PropertyHolder {
     static private final String UNFOLD_LINKS_LIST = "excel.unfold.links.list";
     static private final String ISSUE_RELATION_COLUMN = "excel.issue.relation.column";
     static private final String ISSUE_PARENT_KEY_COLUMN = "excel.issue.parent.key.column";
+    static private final String LABEL_ROW = "excel.label.row";
+    static private final String LABEL_COLUMN = "excel.label.column";
+
+
     // Divider for properties lists
     static private final String PROPERTIES_DIVIDER = ",";
     // Divider between proxy host and port
@@ -53,6 +57,10 @@ public class PropertyHolder {
     // Coordinates of cell with date of update
     private int updateRow;
     private int updateColumn;
+    // Coordinates of cell with label(s)
+    private boolean labelUsed = false;
+    private int labelRow;
+    private int labelColumn;
     // Row number for start processing
     private int startProcessingRow;
     // Column numbers for corresponding values
@@ -65,7 +73,7 @@ public class PropertyHolder {
     private int issueComponentsColumn;
     private int issueAssigneeColumn;
     // List of prefixes (with hyphen) for issues in project(s)
-    private String[] issueKeyPrefixList;
+    private String[] projectKeysList;
     // Overwrite issue summary
     private boolean issueSummaryFill;
     // Recalculate all formulas in report
@@ -118,7 +126,7 @@ public class PropertyHolder {
 
         startProcessingRow = getIntProperty(properties, START_PROCESSING_ROW, propertiesFile);
 
-        issueKeyPrefixList = getStringArrayProperty(properties, ISSUE_KEY_PREFIX, propertiesFile);
+        projectKeysList = getStringArrayProperty(properties, PROJECT_KEY, propertiesFile);
 
         issueSummaryFill = isActionRequested(getStringPropertyWithDefaults(properties, ISSUE_SUMMARY_FILL, yesNoValues, propertiesFile));
 
@@ -149,6 +157,13 @@ public class PropertyHolder {
             String[] proxyParameters = proxy.split(PROXY_DIVIDER);
             System.setProperty("https.proxyHost", proxyParameters[0]);
             System.setProperty("https.proxyPort", proxyParameters[1]);
+        }
+
+        String labelRowTmp = properties.getProperty(LABEL_ROW);
+        if (labelRowTmp != null) {
+            labelUsed = true;
+            labelRow = Integer.valueOf(labelRowTmp);
+            labelColumn = getIntProperty(properties, LABEL_COLUMN, propertiesFile);
         }
     }
 
@@ -215,6 +230,18 @@ public class PropertyHolder {
         return updateColumn - 1;
     }
 
+    public boolean isLabelUsed() {
+        return labelUsed;
+    }
+
+    public int getLabelRow() {
+        return labelRow - 1;
+    }
+
+    public int getLabelColumn() {
+        return labelColumn - 1;
+    }
+
     public int getStartProcessingRow() {
         return startProcessingRow - 1;
     }
@@ -251,8 +278,8 @@ public class PropertyHolder {
         return issueStatusColumn - 1;
     }
 
-    public String[] getIssueKeyPrefixList() {
-        return issueKeyPrefixList;
+    public String[] getProjectKeysList() {
+        return projectKeysList;
     }
 
     public boolean isIssueSummaryFill() {

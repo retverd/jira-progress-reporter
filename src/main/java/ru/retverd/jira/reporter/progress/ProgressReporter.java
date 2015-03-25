@@ -13,16 +13,10 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
+import java.util.*;
 
 class ProgressReporter {
     // Divider between project prefix and issue number
@@ -43,6 +37,7 @@ class ProgressReporter {
     private Font hlinkFont;
     private JiraRestClient jiraClient;
     private HashMap<String, String> linksList;
+    private String labels;
 
     public ProgressReporter(String fileWithProperties, String fileWithReportTemplate) throws IOException {
         // Load and check file with properties
@@ -87,7 +82,7 @@ class ProgressReporter {
         initObjects();
     }
 
-    public void connectToJiraWithCredentials(String login,String pass) throws IOException, URISyntaxException {
+    public void connectToJiraWithCredentials(String login, String pass) throws IOException, URISyntaxException {
         // TODO handle incorrect credentials!
         JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
         jiraClient = factory.createWithBasicHttpAuthentication(new URI(properties.getJiraURL()), login, pass);
@@ -136,25 +131,50 @@ class ProgressReporter {
         for (XSSFSheet sheet : workbook) {
             String sheetName = sheet.getSheetName();
             if (sheetName.contains(properties.getRegularTabMarker())) {
-                System.out.println("Processing sheet " + sheetName.replace(properties.getRegularTabMarker(), "") + "...");
+                System.out.println("Processing sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\"...");
                 XSSFRow currentRow = sheet.getRow(properties.getUpdateRow());
                 XSSFCell currentCell = currentRow.getCell(properties.getUpdateColumn(), Row.CREATE_NULL_AS_BLANK);
                 currentCell.setCellValue(reportHeader.withLocale(Locale.ENGLISH).print(today));
+                if (isLabelRequired(sheet)) {
+                    int searchStep = 50;
+                    int searchPos = 0;
+                    // Retrieve all issues from relevant projects with requested label(s)
+                    String jqlString = "project in (" + String.join(", ", properties.getProjectKeysList()) + ") AND labels in (" + labels + ") ORDER BY issuekey ASC";
+                    System.out.println("Searching for issues with label(s) " + labels + " in project(s) " + String.join(", ", properties.getProjectKeysList()));
+                    // Number of issues that can be retrieved via search at once is limited
+                    SearchResult searchResult = jiraClient.getSearchClient().searchJql(jqlString, searchStep, searchPos, null).claim();
+                    int totalSearchResults = searchResult.getTotal();
+                    System.out.println("Found " + totalSearchResults + " issues!");
+
+                    if (totalSearchResults > 0) {
+                        // Remove all rows with issues
+                        removeRows(sheet, properties.getStartProcessingRow());
+                        // Go through retrieved issues and publish details
+                        do {
+                            Iterator<Issue> issues = searchResult.getIssues().iterator();
+
+                            while (issues.hasNext()) {
+                                Issue issue = issues.next();
+                                appendNewIssueRecord(sheet, "", issue, "");
+                            }
+                            searchPos += searchStep;
+                            searchResult = jiraClient.getSearchClient().searchJql(jqlString, searchStep, searchPos, null).claim();
+                        } while (searchPos < totalSearchResults);
+
+                        adjustCellsWidth(sheet);
+                        System.out.println("Sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\" processed!");
+                        return;
+                    }
+                }
                 if (isUnfoldRequired(sheet)) {
                     // Remove all rows below
-                    for (int i = properties.getStartProcessingRow() + 1; i <= sheet.getLastRowNum(); ) {
-                        currentRow = sheet.getRow(i);
-                        // Skip missing rows
-                        if (currentRow != null) {
-                            sheet.removeRow(currentRow);
-                        } else {
-                            i++;
-                        }
-                    }
+                    removeRows(sheet, properties.getStartProcessingRow() + 1);
                     // Publish details for root issue
                     currentRow = sheet.getRow(properties.getStartProcessingRow());
                     currentCell = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-                    publishIssueDetails(currentRow, currentCell.getStringCellValue());
+                    String issueKey = currentCell.getStringCellValue();
+                    System.out.println("Retrieving issue " + issueKey);
+                    publishIssueDetails(currentRow, jiraClient.getIssueClient().getIssue(issueKey).claim());
 
                     // Walk through linked issues and subtasks and put add rows with details
                     boolean flag = properties.isIssueSummaryFill();
@@ -170,7 +190,9 @@ class ProgressReporter {
                         currentCell = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
                         if (currentCell != null) {
                             if (isIssueInScope(currentCell.getStringCellValue())) {
-                                publishIssueDetails(currentRow, currentCell.getStringCellValue());
+                                String issueKey = currentCell.getStringCellValue();
+                                System.out.println("Retrieving issue " + issueKey);
+                                publishIssueDetails(currentRow, jiraClient.getIssueClient().getIssue(issueKey).claim());
                             }
                         }
                         currentRow = sheet.getRow(rowNumber++);
@@ -178,7 +200,7 @@ class ProgressReporter {
                 }
 
                 adjustCellsWidth(sheet);
-                System.out.println("...done!");
+                System.out.println("Sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\" processed!");
             } else {
                 System.out.println("Sheet \"" + sheetName + "\" is skipped.");
             }
@@ -210,7 +232,7 @@ class ProgressReporter {
         System.out.format("done!%n");
     }
 
-    void publishIssueDetails(XSSFRow row, String issueKey) {
+    void publishIssueDetails(XSSFRow row, Issue issue) {
         XSSFCell cell = row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
 
         // Add hyperlink to current issue if required
@@ -220,12 +242,10 @@ class ProgressReporter {
 
         // Add hyperlink to parent issue if required
         cell = row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-        if ((cell.getHyperlink() == null) && (cell.getStringCellValue() != null)) {
+        if (cell.getHyperlink() == null && !cell.getStringCellValue().isEmpty()) {
             addHyperLink(cell);
         }
 
-        System.out.println("Retrieving issue " + issueKey);
-        Issue issue = jiraClient.getIssueClient().getIssue(issueKey).claim();
         if (properties.isIssueSummaryFill()) {
             row.getCell(properties.getIssueSummaryColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary());
         }
@@ -236,18 +256,19 @@ class ProgressReporter {
             row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getTimeSpentMinutes()));
             row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getRemainingEstimateMinutes()));
         } else {
-            throw new IllegalArgumentException("Time tracking is not supported for current Jira instance (" + properties.getJiraURL() + ").");
+            row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("N/A");
+            row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("N/A");
+            row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("N/A");
         }
         row.getCell(properties.getIssueStatusColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
 
-
         Iterator<BasicComponent> iComponents = issue.getComponents().iterator();
         String components = "";
-        while(iComponents.hasNext()) {
+        while (iComponents.hasNext()) {
             if (components.isEmpty()) {
                 components = iComponents.next().getName();
             } else {
-                components = components + "," + iComponents.next().getName();
+                components = components + ", " + iComponents.next().getName();
             }
         }
         row.getCell(properties.getIssueComponentsColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(components);
@@ -256,12 +277,10 @@ class ProgressReporter {
 
     boolean isIssueInScope(String issueKey) {
         String[] issueKeyParts = issueKey.split(ISSUE_DIVIDER);
-        return Arrays.asList(properties.getIssueKeyPrefixList()).contains(issueKeyParts[0]);
+        return Arrays.asList(properties.getProjectKeysList()).contains(issueKeyParts[0]);
     }
 
     void publishDependentIssues(XSSFSheet sheet, String issueKey) {
-        properties.setIssueSummaryFill(true);
-
         Issue rootIssue = jiraClient.getIssueClient().getIssue(issueKey).claim();
 
         Iterable<IssueLink> issueLinks = rootIssue.getIssueLinks();
@@ -270,7 +289,9 @@ class ProgressReporter {
             // TODO Testing required
             for (IssueLink issueLink : issueLinks) {
                 if (linksList.containsKey(issueLink.getIssueLinkType().getDescription())) {
-                    appendNewIssueRecord(sheet, linksList.get(issueLink.getIssueLinkType().getDescription()), issueLink.getTargetIssueKey(), issueKey);
+                    System.out.println("Retrieving issue " + issueLink.getTargetIssueKey());
+
+                    appendNewIssueRecord(sheet, linksList.get(issueLink.getIssueLinkType().getDescription()), jiraClient.getIssueClient().getIssue(issueLink.getTargetIssueKey()).claim(), issueKey);
                     publishDependentIssues(sheet, issueLink.getTargetIssueKey());
                 }
             }
@@ -281,33 +302,34 @@ class ProgressReporter {
         if ((subTasks != null) && (properties.isUnfoldSubtasks())) {
             // Handle subtasks
             for (Subtask subtask : subTasks) {
-                appendNewIssueRecord(sheet, SUBTASK_OF_VALUE, subtask.getIssueKey(), issueKey);
+                System.out.println("Retrieving issue " + subtask.getIssueKey());
+                appendNewIssueRecord(sheet, SUBTASK_OF_VALUE, jiraClient.getIssueClient().getIssue(subtask.getIssueKey()).claim(), issueKey);
             }
         }
     }
 
-    void appendNewIssueRecord(XSSFSheet sheet, String relation, String issueKey, String parentKey) {
-        XSSFRow row;
+    void appendNewIssueRecord(XSSFSheet sheet, String relation, Issue issue, String parentKey) {
+        XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
 
-        row = sheet.createRow(sheet.getLastRowNum() + 1);
         createCells(row);
-        row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issueKey);
+        row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getKey());
         row.getCell(properties.getIssueRelationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
         row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
-        publishIssueDetails(row, issueKey);
+
+        publishIssueDetails(row, issue);
     }
 
     void adjustCellsWidth(XSSFSheet sheet) {
-        sheet.autoSizeColumn(properties.getIssueSummaryColumn());
-        sheet.autoSizeColumn(properties.getIssueKeyColumn());
-        sheet.autoSizeColumn(properties.getIssueRelationColumn());
-        sheet.autoSizeColumn(properties.getIssueParentKeyColumn());
-        sheet.autoSizeColumn(properties.getIssueEstimationColumn());
-        sheet.autoSizeColumn(properties.getIssueSpentColumn());
-        sheet.autoSizeColumn(properties.getIssueRemainingColumn());
-        sheet.autoSizeColumn(properties.getIssueStatusColumn());
-        sheet.autoSizeColumn(properties.getIssueComponentsColumn());
-        sheet.autoSizeColumn(properties.getIssueAssigneeColumn());
+        sheet.autoSizeColumn(properties.getIssueSummaryColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueKeyColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueRelationColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueParentKeyColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueEstimationColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueSpentColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueRemainingColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueStatusColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueComponentsColumn(), true);
+        sheet.autoSizeColumn(properties.getIssueAssigneeColumn(), true);
     }
 
     void createCells(XSSFRow row) {
@@ -321,6 +343,18 @@ class ProgressReporter {
         row.createCell(properties.getIssueStatusColumn(), Cell.CELL_TYPE_STRING);
         row.createCell(properties.getIssueComponentsColumn(), Cell.CELL_TYPE_STRING);
         row.createCell(properties.getIssueAssigneeColumn(), Cell.CELL_TYPE_STRING);
+    }
+
+    void removeRows(XSSFSheet sheet, int startRow) {
+        for (int i = startRow; i <= sheet.getLastRowNum(); ) {
+            XSSFRow currentRow = sheet.getRow(i);
+            // Skip missing rows
+            if (currentRow != null) {
+                sheet.removeRow(currentRow);
+            } else {
+                i++;
+            }
+        }
     }
 
     void addHyperLink(XSSFCell cell) {
@@ -348,6 +382,18 @@ class ProgressReporter {
         }
         return false;
     }
+
+    boolean isLabelRequired(XSSFSheet sheet) {
+        if (properties.isLabelUsed() == false) return false;
+        XSSFRow currentRow = sheet.getRow(properties.getLabelRow());
+        if (currentRow == null) return false;
+        XSSFCell currentCell = currentRow.getCell(properties.getLabelColumn());
+        if (currentCell == null) return false;
+        labels = currentCell.getStringCellValue();
+        if (labels.isEmpty()) return false;
+        return true;
+    }
+
 
     private static double toHours(Integer value) {
         return (double) (value == null ? 0 : value) / 60;
