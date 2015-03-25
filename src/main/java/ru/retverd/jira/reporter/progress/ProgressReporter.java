@@ -74,7 +74,7 @@ class ProgressReporter {
             if (statusCode.isPresent()) {
                 // Handle exception for incorrect credentials
                 if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
-                    throw new IOException("Authentication error! Please check your credentials!");
+                    throw new IOException(errorMessage);
                 }
             }
             throw e;
@@ -151,10 +151,7 @@ class ProgressReporter {
                         removeRows(sheet, properties.getStartProcessingRow());
                         // Go through retrieved issues and publish details
                         do {
-                            Iterator<Issue> issues = searchResult.getIssues().iterator();
-
-                            while (issues.hasNext()) {
-                                Issue issue = issues.next();
+                            for (Issue issue : searchResult.getIssues()) {
                                 appendNewIssueRecord(sheet, "", issue, "");
                             }
                             searchPos += searchStep;
@@ -384,7 +381,7 @@ class ProgressReporter {
     }
 
     boolean isLabelRequired(XSSFSheet sheet) {
-        if (properties.isLabelUsed() == false) return false;
+        if (!properties.isLabelUsed()) return false;
         XSSFRow currentRow = sheet.getRow(properties.getLabelRow());
         if (currentRow == null) return false;
         XSSFCell currentCell = currentRow.getCell(properties.getLabelColumn());
