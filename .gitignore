@@ -1,10 +1,19 @@
 # Package Files #
 *.jar
 
+# IDE files
+.settings
+.project
+.classpath
+.idea
+*.iml
+
 # Generated files
 target
 test-output
 
 # Custom properties, reports, bat-files and tests
 custom*.*
+*.xlsx
+!default.xlsx
 Custom*.java

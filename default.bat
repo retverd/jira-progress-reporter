@@ -1,1 +1,1 @@
-java -jar target/jira-progress-reporter-0.1.0-jar-with-dependencies.jar default.properties default.xslx
+java -jar target/jira-progress-reporter-0.2.5-jar-with-dependencies.jar default.properties default.xlsx
