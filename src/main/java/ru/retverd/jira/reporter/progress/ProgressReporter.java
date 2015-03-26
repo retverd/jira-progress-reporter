@@ -13,10 +13,16 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Locale;
 
 class ProgressReporter {
     // Divider between project prefix and issue number
@@ -238,9 +244,11 @@ class ProgressReporter {
         }
 
         // Add hyperlink to parent issue if required
-        cell = row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-        if (cell.getHyperlink() == null && !cell.getStringCellValue().isEmpty()) {
-            addHyperLink(cell);
+        if (properties.isUnfoldSubtasks()) {
+            cell = row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK);
+            if (cell.getHyperlink() == null && !cell.getStringCellValue().isEmpty()) {
+                addHyperLink(cell);
+            }
         }
 
         if (properties.isIssueSummaryFill()) {
@@ -310,17 +318,20 @@ class ProgressReporter {
 
         createCells(row);
         row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getKey());
-        row.getCell(properties.getIssueRelationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
-        row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
-
+        if (properties.isUnfoldSubtasks()) {
+            row.getCell(properties.getIssueRelationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
+            row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
+        }
         publishIssueDetails(row, issue);
     }
 
     void adjustCellsWidth(XSSFSheet sheet) {
         sheet.autoSizeColumn(properties.getIssueSummaryColumn(), true);
         sheet.autoSizeColumn(properties.getIssueKeyColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueRelationColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueParentKeyColumn(), true);
+        if (properties.isUnfoldSubtasks()) {
+            sheet.autoSizeColumn(properties.getIssueRelationColumn(), true);
+            sheet.autoSizeColumn(properties.getIssueParentKeyColumn(), true);
+        }
         sheet.autoSizeColumn(properties.getIssueEstimationColumn(), true);
         sheet.autoSizeColumn(properties.getIssueSpentColumn(), true);
         sheet.autoSizeColumn(properties.getIssueRemainingColumn(), true);
@@ -332,8 +343,10 @@ class ProgressReporter {
     void createCells(XSSFRow row) {
         row.createCell(properties.getIssueSummaryColumn(), Cell.CELL_TYPE_STRING);
         row.createCell(properties.getIssueKeyColumn(), Cell.CELL_TYPE_STRING);
-        row.createCell(properties.getIssueRelationColumn(), Cell.CELL_TYPE_STRING);
-        row.createCell(properties.getIssueParentKeyColumn(), Cell.CELL_TYPE_STRING);
+        if (properties.isUnfoldSubtasks()) {
+            row.createCell(properties.getIssueRelationColumn(), Cell.CELL_TYPE_STRING);
+            row.createCell(properties.getIssueParentKeyColumn(), Cell.CELL_TYPE_STRING);
+        }
         row.createCell(properties.getIssueEstimationColumn(), Cell.CELL_TYPE_NUMERIC);
         row.createCell(properties.getIssueSpentColumn(), Cell.CELL_TYPE_NUMERIC);
         row.createCell(properties.getIssueRemainingColumn(), Cell.CELL_TYPE_NUMERIC);

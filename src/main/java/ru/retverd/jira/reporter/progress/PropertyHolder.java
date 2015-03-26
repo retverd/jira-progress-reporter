@@ -83,7 +83,7 @@ public class PropertyHolder {
     // List of links that should be unfold
     private String[] unfoldLinksList;
     // Unfold sub-tasks or not?
-    private boolean unfoldSubtasks;
+    private boolean unfoldSubtasks = false;
     // Column numbers for corresponding values
     private int unfoldMarkerColumn;
     private int issueRelationColumn;
