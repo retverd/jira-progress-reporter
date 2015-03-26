@@ -174,7 +174,7 @@ class ProgressReporter {
 
                         adjustCellsWidth(sheet);
                         System.out.println("Sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\" processed!");
-                        return;
+                        continue;
                     }
                 }
                 if (isUnfoldRequired(sheet)) {
