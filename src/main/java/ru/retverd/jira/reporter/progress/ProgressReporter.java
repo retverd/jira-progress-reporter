@@ -153,6 +153,7 @@ class ProgressReporter {
                     fields.add("project");
                     fields.add("status");
                     fields.add("issuetype");
+                    fields.add("assignee");
                     fields.add("components");
                     fields.add("timetracking");
 
