@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ru.retverd.utilities.jira</groupId>
     <artifactId>jira-progress-reporter</artifactId>
-    <version>0.2.5</version>
+    <version>0.2.8-SNAPSHOT</version>
     <name>jira-progress-reporter</name>
     <url>https://github.com/retverd/jira-progress-reporter</url>
     <description>Java application which allows to build fill progress report in Excel from JIRA.</description>
