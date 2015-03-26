@@ -31,6 +31,7 @@ Based on jira-rest-java-client-re:
         	* Processing is being switched to the new sheet;
 		* All rows are being analyzed, if issue key that belongs to project mentioned in property excel.project.key is found then issue details are being published;
 		* When last row is reached, processing is being switched to the new sheet;
+* If property excel.recalculate.formulas is set to y, then all formulas in document are being recalculated;
 * If property report.filename.pattern is set, then report saved to new file;
 * Otherwise existing file is being overwritten.
 
