@@ -19,10 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
+import java.util.*;
 
 class ProgressReporter {
     // Divider between project prefix and issue number
@@ -148,7 +145,18 @@ class ProgressReporter {
                     String jqlString = "project in (" + String.join(", ", properties.getProjectKeysList()) + ") AND labels in (" + labels + ") ORDER BY issuekey ASC";
                     System.out.println("Searching for issues with label(s) " + labels + " in project(s) " + String.join(", ", properties.getProjectKeysList()));
                     // Number of issues that can be retrieved via search at once is limited
-                    SearchResult searchResult = jiraClient.getSearchClient().searchJql(jqlString, searchStep, searchPos, null).claim();
+
+                    Set<String> fields = new HashSet<String>();
+                    fields.add("summary");
+                    fields.add("created");
+                    fields.add("updated");
+                    fields.add("project");
+                    fields.add("status");
+                    fields.add("issuetype");
+                    fields.add("components");
+                    fields.add("timetracking");
+
+                    SearchResult searchResult = jiraClient.getSearchClient().searchJql(jqlString, searchStep, searchPos, fields).claim();
                     int totalSearchResults = searchResult.getTotal();
                     System.out.println("Found " + totalSearchResults + " issues!");
 
