@@ -7,7 +7,8 @@ import com.atlassian.jira.rest.client.api.domain.*;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.google.common.base.Optional;
 import org.apache.poi.POIXMLException;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.*;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -24,20 +25,13 @@ import java.util.*;
 class ProgressReporter {
     // Divider between project prefix and issue number
     static private final String ISSUE_DIVIDER = "-";
-    // Underline hyperlinks
-    static private final byte LINK_UNDERLINE_STYLE = Font.U_SINGLE;
-    // Color for hyperlinks
-    static private final short LINK_FONT_COLOR = IndexedColors.BLUE.getIndex();
     // Status code for wrong credentials
     static private final Integer AUTH_FAIL_STATUS = 401;
-    // Joiner for Jira url from properties and issue key
-    static private final String LINK_MISSING_CHAIN = "/browse/";
     // String for subtasks
     static private final String SUBTASK_OF_VALUE = "subtask of";
 
     private PropertyHolder properties;
     private XSSFWorkbook workbook;
-    private Font hlinkFont;
     private JiraRestClient jiraClient;
     private HashMap<String, String> linksList;
     private String labels;
@@ -60,10 +54,6 @@ class ProgressReporter {
         } finally {
             fis.close();
         }
-        // Create font for cells with hyperlinks
-        hlinkFont = workbook.createFont();
-        hlinkFont.setUnderline(LINK_UNDERLINE_STYLE);
-        hlinkFont.setColor(LINK_FONT_COLOR);
         System.out.format("done!%n");
     }
 
@@ -245,20 +235,7 @@ class ProgressReporter {
     }
 
     void publishIssueDetails(XSSFRow row, Issue issue) {
-        XSSFCell cell = row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-
-        // Add hyperlink to current issue if required
-        if (cell.getHyperlink() == null) {
-            addHyperLink(cell);
-        }
-
-        // Add hyperlink to parent issue if required
-        if (properties.isUnfoldSubtasks()) {
-            cell = row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-            if (cell.getHyperlink() == null && !cell.getStringCellValue().isEmpty()) {
-                addHyperLink(cell);
-            }
-        }
+        row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
 
         if (properties.isIssueSummaryFill()) {
             row.getCell(properties.getIssueSummaryColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary());
@@ -326,10 +303,10 @@ class ProgressReporter {
         XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
 
         createCells(row);
-        row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getKey());
+        row.getCell(properties.getIssueKeyColumn()).setCellValue(issue.getKey());
         if (properties.isUnfoldSubtasks()) {
-            row.getCell(properties.getIssueRelationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
-            row.getCell(properties.getIssueParentKeyColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
+            row.getCell(properties.getIssueRelationColumn()).setCellValue(relation);
+            row.getCell(properties.getIssueParentKeyColumn()).setCellValue(parentKey);
         }
         publishIssueDetails(row, issue);
     }
@@ -365,28 +342,13 @@ class ProgressReporter {
     }
 
     void removeRows(XSSFSheet sheet, int startRow) {
-        for (int i = startRow; i <= sheet.getLastRowNum(); ) {
+        for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
             XSSFRow currentRow = sheet.getRow(i);
             // Skip missing rows
             if (currentRow != null) {
                 sheet.removeRow(currentRow);
-            } else {
-                i++;
             }
         }
-    }
-
-    void addHyperLink(XSSFCell cell) {
-        // Required for hyperlinks
-        CreationHelper createHelper = workbook.getCreationHelper();
-
-        Hyperlink link = createHelper.createHyperlink(Hyperlink.LINK_URL);
-        link.setAddress(properties.getJiraURL() + LINK_MISSING_CHAIN + cell.getStringCellValue());
-        cell.setHyperlink(link);
-        XSSFCellStyle linkStyle = workbook.createCellStyle();
-        linkStyle.cloneStyleFrom(cell.getCellStyle());
-        linkStyle.setFont(hlinkFont);
-        cell.setCellStyle(linkStyle);
     }
 
     boolean isUnfoldRequired(XSSFSheet sheet) {
@@ -409,8 +371,7 @@ class ProgressReporter {
         XSSFCell currentCell = currentRow.getCell(properties.getLabelColumn());
         if (currentCell == null) return false;
         labels = currentCell.getStringCellValue();
-        if (labels.isEmpty()) return false;
-        return true;
+        return !labels.isEmpty();
     }
 
 
