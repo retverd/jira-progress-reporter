@@ -5,100 +5,133 @@ import com.atlassian.jira.rest.client.api.JiraRestClientFactory;
 import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.*;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
-import com.google.common.base.Optional;
+import org.apache.log4j.Logger;
 import org.apache.poi.POIXMLException;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import ru.retverd.jira.reporter.progress.types.ConfigType;
+import ru.retverd.jira.reporter.progress.types.IssueColumnsType;
+import ru.retverd.jira.reporter.progress.types.ReportType;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import javax.naming.ConfigurationException;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import java.io.*;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 
-class ProgressReporter {
-    // Divider between project prefix and issue number
+public class ProgressReporter {
+    // Divider between links prefix and issue number
     static private final String ISSUE_DIVIDER = "-";
-    // Status code for wrong credentials
-    static private final Integer AUTH_FAIL_STATUS = 401;
     // String for subtasks
     static private final String SUBTASK_OF_VALUE = "subtask of";
-
-    private PropertyHolder properties;
+    //
+    static private final Integer AUTH_FAIL_STATUS = 401;
+    //
+    private static final Logger log = Logger.getLogger(ProgressReporter.class.getName());
+    private String reportFile;
+    // Relevant for one sheet only
+    private String issueSummaryPrefixToHide;
+    private Map<String, String> linksList;
+    private List<String> affVersionsList;
+    private List<String> componentsList;
+    private List<String> labelsList;
+    //
+    private ConfigType config;
     private XSSFWorkbook workbook;
     private JiraRestClient jiraClient;
-    private HashMap<String, String> linksList;
-    private String labels;
+    private Set<String> searchFields;
+    private List<String> projects;
 
-    public ProgressReporter(String fileWithProperties, String fileWithReportTemplate) throws IOException {
-        // Load and check file with properties
-        System.out.format("Loading and parsing properties from " + fileWithProperties + "...");
-        properties = new PropertyHolder(fileWithProperties);
-        System.out.format("done!%n");
+    public ProgressReporter(String[] args) throws Throwable {
+        String configFile = args[0];
+        reportFile = args[1];
 
-        // Load Excel file with report template
-        System.out.format("Reading report file " + fileWithReportTemplate + "...");
-        // OPCPackage is not used due to problems with saving results: org.apache.poi.openxml4j.exceptions.OpenXML4JException: The part /docProps/app.xml fail
-        // to be saved in the stream with marshaller org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
-        FileInputStream fis = new FileInputStream(fileWithReportTemplate);
+        // Load file with properties
+        log.info("Loading and parsing properties from " + configFile);
+        Unmarshaller unmarshaller = JAXBContext.newInstance(ConfigType.class).createUnmarshaller();
+        unmarshaller.setEventHandler(new javax.xml.bind.helpers.DefaultValidationEventHandler());
+
         try {
-            workbook = new XSSFWorkbook(fis);
-        } catch (POIXMLException e) {
-            throw new IOException("Report file " + fileWithReportTemplate + " has incorrect format.");
-        } finally {
-            fis.close();
+            config = (ConfigType) unmarshaller.unmarshal(new File(configFile));
+        } catch (JAXBException ex) {
+            if (ex.getMessage() == null) {
+                log.fatal(ex.getLinkedException().getMessage(), ex.getLinkedException());
+                throw ex.getLinkedException();
+            }
         }
-        System.out.format("done!%n");
-    }
 
-    private void checkConnectionToJira(String errorMessage) throws IOException {
-        try {
-            ServerInfo si = jiraClient.getMetadataClient().getServerInfo().claim();
-            System.out.println("Just connected to Jira instance v." + si.getVersion());
-        } catch (RestClientException e) {
-            disconnectFromJIRA();
-            Optional<Integer> statusCode = e.getStatusCode();
-            if (statusCode.isPresent()) {
-                // Handle exception for incorrect credentials
-                if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
-                    throw new IOException(errorMessage);
+        if (config.getJira().getProxy() != null) {
+            System.setProperty("https.proxyHost", config.getJira().getProxy().getHost());
+            System.setProperty("https.proxyPort", config.getJira().getProxy().getPort());
+            log.info("Proxy server " + config.getJira().getProxy().getHost() + ":" + config.getJira().getProxy().getPort() + " is being used!");
+        }
+
+        // Connect to Jira
+        if (config.getJira().isAnonymous()) {
+            // TODO handle missing access!
+            JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+            jiraClient = factory.createWithAnonymousAccess(new URI(config.getJira().getUrl()));
+            log.info("Anonymous factory was used.");
+            checkConnection("Anonymous access is prohibited!");
+        } else {
+            // Request credentials for JIRA
+            String login;
+            String pass;
+            // TODO handle empty credentials!
+            if (args.length == 4) {
+                login = args[2];
+                pass = args[3];
+            } else {
+                String loginPrompt = "Please enter your login: ";
+                String passPrompt = "Please enter your password: ";
+                Console console = System.console();
+                System.out.print(loginPrompt);
+                if (console == null) {
+                    Scanner in = new Scanner(System.in);
+                    login = in.next();
+                    System.out.print(passPrompt);
+                    pass = in.next();
+                    in.close();
+                } else {
+                    login = console.readLine();
+                    System.out.print(passPrompt);
+                    pass = new String(console.readPassword());
                 }
             }
-            throw e;
+            // TODO handle incorrect credentials!
+            JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+            jiraClient = factory.createWithBasicHttpAuthentication(new URI(config.getJira().getUrl()), login, pass);
+            log.info("Basic http authentication factory was used.");
+            checkConnection("Authentication error! Please check your credentials!");
         }
-        initObjects();
-    }
 
-    public void connectToJiraWithCredentials(String login, String pass) throws IOException, URISyntaxException {
-        // TODO handle incorrect credentials!
-        JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-        jiraClient = factory.createWithBasicHttpAuthentication(new URI(properties.getJiraURL()), login, pass);
-        checkConnectionToJira("Authentication error! Please check your credentials!");
-    }
+        this.searchFields = new HashSet<String>();
+        searchFields.add("summary");
+        searchFields.add("created");
+        searchFields.add("updated");
+        searchFields.add("links");
+        searchFields.add("status");
+        searchFields.add("issuetype");
+        searchFields.add("assignee");
+        searchFields.add("components");
+        searchFields.add("timetracking");
+        searchFields.add("labels");
+        searchFields.add("versions");
+        searchFields.add("project");
 
-    public void connectToJiraAnonymously() throws IOException, URISyntaxException {
-        // TODO handle missing access!
-        JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-        jiraClient = factory.createWithAnonymousAccess(new URI(properties.getJiraURL()));
-        checkConnectionToJira("Anonymous access is prohibited!");
-    }
+        projects = config.getJira().getProjects();
 
-    public void disconnectFromJIRA() throws IOException {
-        jiraClient.close();
-    }
-
-    private void initObjects() throws IOException {
         linksList = new HashMap<String, String>();
-        Iterable<IssuelinksType> issueLinkTypes = jiraClient.getMetadataClient().getIssueLinkTypes().claim();
-        String[] links = properties.getUnfoldLinksList();
-        if (links != null) {
-            for (String link : links) {
+        if (config.getReport().getRootIssue() != null) {
+            log.info("Getting IssueLinkTypes from server...");
+            Iterable<IssuelinksType> issueLinkTypes = jiraClient.getMetadataClient().getIssueLinkTypes().claim();
+            for (String link : config.getReport().getRootIssue().getLinks()) {
                 for (IssuelinksType issueLinkType : issueLinkTypes) {
                     if (issueLinkType.getInward().equals(link)) {
                         linksList.put(link, issueLinkType.getOutward());
@@ -108,181 +141,194 @@ class ProgressReporter {
                         break;
                     }
                 }
-                if (!linksList.containsKey(link)) {
-                    throw new IOException("Link '" + link + "' is missing on server!");
-                }
+                log.error("Issue link type '" + link + "' is missing on server!");
             }
+        }
+
+        // Load Excel file with report timePattern
+        log.info("Reading report file " + reportFile);
+        // OPCPackage is not used due to problems with saving results: org.apache.poi.openxml4j.exceptions.OpenXML4JException: The part /docProps/app.xml fail
+        // to be saved in the stream with marshaller org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
+        FileInputStream fis = new FileInputStream(reportFile);
+        try {
+            workbook = new XSSFWorkbook(fis);
+        } catch (POIXMLException e) {
+            log.fatal("Report file " + reportFile + " has incorrect format.", e);
+            throw new ConfigurationException("Report file " + reportFile + " has incorrect format.");
+        } catch (Throwable e) {
+            log.fatal("Unexpected exception - " + e.getMessage(), e);
+            throw e;
+        } finally {
+            fis.close();
         }
     }
 
     public void updateReport() {
-        // Today
-        DateTime today = new DateTime();
-        DateTimeFormatter reportHeader = DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ");
+        // Prepare time stamp if required
+        String todayPrintable = "";
+        if (config.getReport().getUpdateDate() != null) {
+            DateTime today = new DateTime();
+            DateTimeFormatter reportHeader = DateTimeFormat.forPattern(config.getReport().getUpdateDate().getTimePattern());
+            todayPrintable = reportHeader.withLocale(Locale.ENGLISH).print(today);
+        }
 
-        // iterate through sheets
+        // Iterate through sheets
         for (XSSFSheet sheet : workbook) {
             String sheetName = sheet.getSheetName();
-            if (sheetName.contains(properties.getRegularTabMarker())) {
-                System.out.println("Processing sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\"...");
-                XSSFRow currentRow = sheet.getRow(properties.getUpdateRow());
-                XSSFCell currentCell = currentRow.getCell(properties.getUpdateColumn(), Row.CREATE_NULL_AS_BLANK);
-                currentCell.setCellValue(reportHeader.withLocale(Locale.ENGLISH).print(today));
-                if (isLabelRequired(sheet)) {
-                    int searchStep = 50;
+            if (sheetName.contains(config.getReport().getMarker())) {
+                log.info("Processing sheet \"" + sheetName.replace(config.getReport().getMarker(), "") + "\"...");
+                if (config.getReport().getUpdateDate() != null) {
+                    XSSFRow updateRow = sheet.getRow(config.getReport().getUpdateDate().getRow());
+                    if (updateRow == null) {
+                        log.error("Row " + humanizeRow(config.getReport().getUpdateDate().getRow()) + " for update date is missing on sheet " + sheetName + ".");
+                    } else {
+                        updateRow.getCell(config.getReport().getUpdateDate().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(todayPrintable);
+                    }
+                }
+                // Prefix for issue summary to be hidden
+                issueSummaryPrefixToHide = "";
+                if (config.getReport().getToHide() != null) {
+                    if (config.getReport().getToHide().getIssuePrefixRow() != null && config.getReport().getToHide().getIssuePrefixCol() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getIssuePrefixRow());
+                        if (row != null) {
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getIssuePrefixCol());
+                            if (cell != null) {
+                                issueSummaryPrefixToHide = cell.getStringCellValue();
+                            }
+                        }
+                    }
+                }
+                // List of affVersions to be hidden
+                affVersionsList = new ArrayList<String>();
+                if (config.getReport().getToHide() != null) {
+                    if (config.getReport().getToHide().getAffectedVersionRow() != null && config.getReport().getToHide().getAffectedVersionCol() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getAffectedVersionRow());
+                        if (row != null) {
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getAffectedVersionCol());
+                            if (cell != null) {
+                                affVersionsList = Arrays.asList(cell.getStringCellValue().trim().split(","));
+                            }
+                        }
+                    }
+                }
+                // List of components to be hidden
+                componentsList = new ArrayList<String>();
+                if (config.getReport().getToHide() != null) {
+                    if (config.getReport().getToHide().getComponentsRow() != null && config.getReport().getToHide().getComponentsCol() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getComponentsRow());
+                        if (row != null) {
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getComponentsCol());
+                            if (cell != null) {
+                                componentsList = Arrays.asList(cell.getStringCellValue().trim().split(","));
+                            }
+                        }
+                    }
+                }
+                // List of labels to be hidden
+                labelsList = new ArrayList<String>();
+                if (config.getReport().getToHide() != null) {
+                    if (config.getReport().getToHide().getLabelsRow() != null && config.getReport().getToHide().getLabelsCol() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getLabelsRow());
+                        if (row != null) {
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getLabelsCol());
+                            if (cell != null) {
+                                labelsList = Arrays.asList(cell.getStringCellValue().replaceAll("\\s", "").split(","));
+                            }
+                        }
+                    }
+                }
+
+                String jqlQuery = getJQLQuery(sheet);
+                String rootIssueKey = getRootIssueKey(sheet);
+                if (jqlQuery != null) {
+                    // Remove all rows with issues
+                    removeRows(sheet, config.getReport().getStartProcessingRow());
+                    log.info("Search for issues will be initiated, all rows starting from issueKeyRow " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
+
                     int searchPos = 0;
+                    int searchStep = config.getReport().getJqlQuery().getSearchStep();
                     // Retrieve all issues from relevant projects with requested label(s)
-                    String jqlString = "project in (" + String.join(", ", properties.getProjectKeysList()) + ") AND labels in (" + labels + ") ORDER BY issuekey ASC";
-                    System.out.println("Searching for issues with label(s) " + labels + " in project(s) " + String.join(", ", properties.getProjectKeysList()));
-                    // Number of issues that can be retrieved via search at once is limited
-
-                    Set<String> fields = new HashSet<String>();
-                    fields.add("summary");
-                    fields.add("created");
-                    fields.add("updated");
-                    fields.add("project");
-                    fields.add("status");
-                    fields.add("issuetype");
-                    fields.add("assignee");
-                    fields.add("components");
-                    fields.add("timetracking");
-
-                    SearchResult searchResult = jiraClient.getSearchClient().searchJql(jqlString, searchStep, searchPos, fields).claim();
+                    log.info("Searching for issues using request: " + jqlQuery + "...");
+                    SearchResult searchResult = jiraClient.getSearchClient().searchJql(jqlQuery, searchStep, searchPos, searchFields).claim();
                     int totalSearchResults = searchResult.getTotal();
-                    System.out.println("Found " + totalSearchResults + " issues!");
+                    log.info(totalSearchResults + " issue(s) found.");
 
                     if (totalSearchResults > 0) {
-                        // Remove all rows with issues
-                        removeRows(sheet, properties.getStartProcessingRow());
+                        boolean flag = config.getReport().getProcessingFlags().isIssueSummaryUpdate();
+                        config.getReport().getProcessingFlags().setIssueSummaryUpdate(true);
                         // Go through retrieved issues and publish details
                         do {
                             for (Issue issue : searchResult.getIssues()) {
-                                appendNewIssueRecord(sheet, "", issue, "");
+                                XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
+
+                                publishIssueDetails(row, issue, null, null);
                             }
                             searchPos += searchStep;
-                            searchResult = jiraClient.getSearchClient().searchJql(jqlString, searchStep, searchPos, null).claim();
+                            searchResult = jiraClient.getSearchClient().searchJql(jqlQuery, searchStep, searchPos, null).claim();
                         } while (searchPos < totalSearchResults);
-
-                        adjustCellsWidth(sheet);
-                        System.out.println("Sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\" processed!");
-                        continue;
+                        config.getReport().getProcessingFlags().setIssueSummaryUpdate(flag);
                     }
-                }
-                if (isUnfoldRequired(sheet)) {
-                    // Remove all rows below
-                    removeRows(sheet, properties.getStartProcessingRow() + 1);
+                } else if (rootIssueKey != null) {
+                    // Remove all rows with issues
+                    removeRows(sheet, config.getReport().getStartProcessingRow());
+                    log.info("Search for issues will be initiated, all rows starting from issueKeyRow " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
                     // Publish details for root issue
-                    currentRow = sheet.getRow(properties.getStartProcessingRow());
-                    currentCell = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-                    String issueKey = currentCell.getStringCellValue();
-                    System.out.println("Retrieving issue " + issueKey);
-                    publishIssueDetails(currentRow, jiraClient.getIssueClient().getIssue(issueKey).claim());
+                    XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
+                    log.info("Retrieving issue " + rootIssueKey);
+                    publishIssueDetails(row, jiraClient.getIssueClient().getIssue(rootIssueKey).claim(), null, null);
 
-                    // Walk through linked issues and subtasks and put add rows with details
-                    boolean flag = properties.isIssueSummaryFill();
-                    properties.setIssueSummaryFill(true);
-                    publishDependentIssues(sheet, currentCell.getStringCellValue());
-                    properties.setIssueSummaryFill(flag);
-                    // Remove unfold marker
-                    currentRow.getCell(properties.getUnfoldMarkerColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("");
+                    // Walk through linked issues and subtasks and add rows with details
+                    boolean flag = config.getReport().getProcessingFlags().isIssueSummaryUpdate();
+                    config.getReport().getProcessingFlags().setIssueSummaryUpdate(true);
+                    publishDependentIssues(sheet, rootIssueKey);
+                    config.getReport().getProcessingFlags().setIssueSummaryUpdate(flag);
                 } else {
-                    int rowNumber = properties.getStartProcessingRow();
-                    currentRow = sheet.getRow(rowNumber++);
-                    while (currentRow != null) {
-                        currentCell = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-                        if (currentCell != null) {
-                            if (isIssueInScope(currentCell.getStringCellValue())) {
-                                String issueKey = currentCell.getStringCellValue();
-                                System.out.println("Retrieving issue " + issueKey);
-                                publishIssueDetails(currentRow, jiraClient.getIssueClient().getIssue(issueKey).claim());
+                    int rowNumber = config.getReport().getStartProcessingRow();
+                    XSSFRow row = sheet.getRow(rowNumber++);
+                    while (row != null) {
+                        XSSFCell cell = row.getCell(config.getReport().getIssueColumns().getKey(), Row.CREATE_NULL_AS_BLANK);
+                        if (cell != null) {
+                            String issueKey = cell.getStringCellValue();
+                            if (isIssueInScope(issueKey)) {
+                                log.info("Retrieving issue " + issueKey);
+                                publishIssueDetails(row, jiraClient.getIssueClient().getIssue(issueKey).claim(), null, null);
                             }
                         }
-                        currentRow = sheet.getRow(rowNumber++);
+                        row = sheet.getRow(rowNumber++);
                     }
                 }
 
-                adjustCellsWidth(sheet);
-                System.out.println("Sheet \"" + sheetName.replace(properties.getRegularTabMarker(), "") + "\" processed!");
+                if (config.getReport().getProcessingFlags().isAutosizeColumns()) {
+                    adjustCellsWidth(sheet);
+                }
+                log.info("Sheet \"" + sheetName.replace(config.getReport().getMarker(), "") + "\" processed!");
             } else {
-                System.out.println("Sheet \"" + sheetName + "\" is skipped.");
+                log.info("Sheet \"" + sheetName + "\" is skipped.");
+            }
+
+            // Refresh all formulas if required
+            // Leads to exceptions on some Excel files with error message: Unexpected ptg class (org.apache.poi.ss.formula.ptg.ArrayPtg)
+            // See https://github.com/retverd/jira-progress-reporter/issues/1 (Problems with evaluateAllFormulaCells)
+
+            if (config.getReport().getProcessingFlags().isRecalculateFormulas()) {
+                log.info("Recalculating formulas...");
+                XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
             }
         }
 
-        // Refresh all formulas if required
-        // Leads to exceptions on some Excel files with error message: Unexpected ptg class (org.apache.poi.ss.formula.ptg.ArrayPtg)
-        // See https://github.com/retverd/jira-progress-reporter/issues/1 (Problems with evaluateAllFormulaCells)
-        if (properties.isRecalculateFormulas()) {
-            System.out.format("Recalculating formulas...");
-            XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
-            System.out.format("done!%n");
-        }
     }
 
-    public void saveReport(String fileWithReport) throws IOException {
-        String notification = "Rewriting";
-
-        if (properties.getReportFilenamePattern() != null) {
-            DateTimeFormatter dateFormForReport = DateTimeFormat.forPattern(properties.getReportFilenamePattern());
-            fileWithReport = dateFormForReport.print(new DateTime()) + ".xlsx";
-            notification = "Saving report to";
-        }
-
-        System.out.format(notification + " file " + fileWithReport + "...");
-        FileOutputStream fos = new FileOutputStream(new File(fileWithReport));
-        workbook.write(fos);
-        fos.close();
-        System.out.format("done!%n");
-    }
-
-    void publishIssueDetails(XSSFRow row, Issue issue) {
-        row.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK);
-
-        if (properties.isIssueSummaryFill()) {
-            row.getCell(properties.getIssueSummaryColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary());
-        }
-
-        TimeTracking time = issue.getTimeTracking();
-        if (time != null) {
-            row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getOriginalEstimateMinutes()));
-            row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getTimeSpentMinutes()));
-            row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(toHours(time.getRemainingEstimateMinutes()));
-        } else {
-            row.getCell(properties.getIssueEstimationColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("N/A");
-            row.getCell(properties.getIssueSpentColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("N/A");
-            row.getCell(properties.getIssueRemainingColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue("N/A");
-        }
-        row.getCell(properties.getIssueStatusColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
-
-        Iterator<BasicComponent> iComponents = issue.getComponents().iterator();
-        String components = "";
-        while (iComponents.hasNext()) {
-            if (components.isEmpty()) {
-                components = iComponents.next().getName();
-            } else {
-                components = components + ", " + iComponents.next().getName();
-            }
-        }
-        row.getCell(properties.getIssueComponentsColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(components);
-        row.getCell(properties.getIssueAssigneeColumn(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getAssignee() == null ? "" : issue.getAssignee().getDisplayName());
-    }
-
-    boolean isIssueInScope(String issueKey) {
-        String[] issueKeyParts = issueKey.split(ISSUE_DIVIDER);
-        return Arrays.asList(properties.getProjectKeysList()).contains(issueKeyParts[0]);
-    }
-
-    void publishDependentIssues(XSSFSheet sheet, String issueKey) {
+    private void publishDependentIssues(XSSFSheet sheet, String issueKey) {
         Issue rootIssue = jiraClient.getIssueClient().getIssue(issueKey).claim();
 
         Iterable<IssueLink> issueLinks = rootIssue.getIssueLinks();
         if (issueLinks != null) {
             // Handle referenced issues
-            // TODO Testing required
             for (IssueLink issueLink : issueLinks) {
                 if (linksList.containsKey(issueLink.getIssueLinkType().getDescription())) {
-                    System.out.println("Retrieving issue " + issueLink.getTargetIssueKey());
-
-                    appendNewIssueRecord(sheet, linksList.get(issueLink.getIssueLinkType().getDescription()), jiraClient.getIssueClient().getIssue(issueLink.getTargetIssueKey()).claim(), issueKey);
+                    log.info("Retrieving issue " + issueLink.getTargetIssueKey());
+                    XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
+                    publishIssueDetails(row, jiraClient.getIssueClient().getIssue(issueLink.getTargetIssueKey()).claim(), linksList.get(issueLink.getIssueLinkType().getDescription()), issueKey);
                     publishDependentIssues(sheet, issueLink.getTargetIssueKey());
                 }
             }
@@ -290,60 +336,135 @@ class ProgressReporter {
 
         Iterable<Subtask> subTasks = rootIssue.getSubtasks();
 
-        if ((subTasks != null) && (properties.isUnfoldSubtasks())) {
+        if (subTasks != null && config.getReport().getRootIssue().isUnfoldSubtasks()) {
             // Handle subtasks
             for (Subtask subtask : subTasks) {
-                System.out.println("Retrieving issue " + subtask.getIssueKey());
-                appendNewIssueRecord(sheet, SUBTASK_OF_VALUE, jiraClient.getIssueClient().getIssue(subtask.getIssueKey()).claim(), issueKey);
+                log.info("Retrieving issue " + subtask.getIssueKey());
+                XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
+                publishIssueDetails(row, jiraClient.getIssueClient().getIssue(subtask.getIssueKey()).claim(), SUBTASK_OF_VALUE, issueKey);
             }
         }
     }
 
-    void appendNewIssueRecord(XSSFSheet sheet, String relation, Issue issue, String parentKey) {
-        XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
+    private void publishIssueDetails(XSSFRow row, Issue issue, String relation, String parentKey) {
+        String est = "N/A";
+        String spent = "N/A";
+        String rem = "N/A";
+        ReportType report = config.getReport();
 
-        createCells(row);
-        row.getCell(properties.getIssueKeyColumn()).setCellValue(issue.getKey());
-        if (properties.isUnfoldSubtasks()) {
-            row.getCell(properties.getIssueRelationColumn()).setCellValue(relation);
-            row.getCell(properties.getIssueParentKeyColumn()).setCellValue(parentKey);
+        if (report.getProcessingFlags().isIssueSummaryUpdate() && report.getIssueColumns().getSummary() != null) {
+            row.getCell(report.getIssueColumns().getSummary(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getSummary().replaceFirst(issueSummaryPrefixToHide, ""));
         }
-        publishIssueDetails(row, issue);
+
+        row.getCell(report.getIssueColumns().getKey(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getKey());
+
+        if (relation != null && report.getIssueColumns().getRelation() != null) {
+            row.getCell(report.getIssueColumns().getRelation(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);
+        }
+
+        if (parentKey != null && report.getIssueColumns().getParentKey() != null) {
+            row.getCell(report.getIssueColumns().getParentKey(), Row.CREATE_NULL_AS_BLANK).setCellValue(parentKey);
+        }
+
+        TimeTracking time = issue.getTimeTracking();
+        if (time != null) {
+            est = String.valueOf(toHours(time.getOriginalEstimateMinutes()));
+            spent = String.valueOf(toHours(time.getTimeSpentMinutes()));
+            rem = String.valueOf(toHours(time.getRemainingEstimateMinutes()));
+        }
+
+        if (report.getIssueColumns().getEstimation() != null) {
+            row.getCell(report.getIssueColumns().getEstimation(), Row.CREATE_NULL_AS_BLANK).setCellValue(est);
+        }
+
+        if (report.getIssueColumns().getSpentTime() != null) {
+            row.getCell(report.getIssueColumns().getSpentTime(), Row.CREATE_NULL_AS_BLANK).setCellValue(spent);
+        }
+
+        if (report.getIssueColumns().getRemainingTime() != null) {
+            row.getCell(report.getIssueColumns().getRemainingTime(), Row.CREATE_NULL_AS_BLANK).setCellValue(rem);
+        }
+
+        if (report.getIssueColumns().getStatus() != null) {
+            row.getCell(report.getIssueColumns().getStatus(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
+        }
+
+        if (report.getIssueColumns().getAfVersion() != null && issue.getAffectedVersions() != null) {
+            Iterator<Version> iVersions = issue.getAffectedVersions().iterator();
+            String versions = "";
+            while (iVersions.hasNext()) {
+                String iVersion = iVersions.next().getName();
+                // Check for redundant affected versions
+                if (!affVersionsList.contains(iVersion)) {
+                    versions = versions + ", " + iVersion;
+                }
+            }
+            versions = versions.replaceFirst(", ", "");
+            row.getCell(report.getIssueColumns().getAfVersion(), Row.CREATE_NULL_AS_BLANK).setCellValue(versions);
+        }
+
+        if (report.getIssueColumns().getComponents() != null && issue.getComponents() != null) {
+            Iterator<BasicComponent> iComponents = issue.getComponents().iterator();
+            String components = "";
+            while (iComponents.hasNext()) {
+                String iComponent = iComponents.next().getName();
+                // Check for redundant components
+                if (!componentsList.contains(iComponent)) {
+                    components = components + ", " + iComponent;
+                }
+            }
+            components = components.replaceFirst(", ", "");
+            row.getCell(report.getIssueColumns().getComponents(), Row.CREATE_NULL_AS_BLANK).setCellValue(components);
+        }
+
+        if (report.getIssueColumns().getLabels() != null && issue.getLabels() != null) {
+            Iterator<String> iLabels = issue.getLabels().iterator();
+            String labels = "";
+            while (iLabels.hasNext()) {
+                String iLabel = iLabels.next();
+                // Check for redundant labels
+                if (!labelsList.contains(iLabel)) {
+                    labels = labels + ", " + iLabel;
+                }
+            }
+            labels = labels.replaceFirst(", ", "");
+            row.getCell(report.getIssueColumns().getLabels(), Row.CREATE_NULL_AS_BLANK).setCellValue(labels);
+        }
+
+        if (report.getIssueColumns().getAssignee() != null) {
+            row.getCell(report.getIssueColumns().getAssignee(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getAssignee() == null ? "" : issue.getAssignee().getDisplayName());
+        }
+
     }
 
-    void adjustCellsWidth(XSSFSheet sheet) {
-        sheet.autoSizeColumn(properties.getIssueSummaryColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueKeyColumn(), true);
-        if (properties.isUnfoldSubtasks()) {
-            sheet.autoSizeColumn(properties.getIssueRelationColumn(), true);
-            sheet.autoSizeColumn(properties.getIssueParentKeyColumn(), true);
-        }
-        sheet.autoSizeColumn(properties.getIssueEstimationColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueSpentColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueRemainingColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueStatusColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueComponentsColumn(), true);
-        sheet.autoSizeColumn(properties.getIssueAssigneeColumn(), true);
+    private void adjustCellsWidth(XSSFSheet sheet) {
+        IssueColumnsType columns = config.getReport().getIssueColumns();
+
+        if (columns.getSummary() != null) sheet.autoSizeColumn(columns.getSummary(), true);
+        if (columns.getKey() != null) sheet.autoSizeColumn(columns.getKey(), true);
+        if (columns.getRelation() != null) sheet.autoSizeColumn(columns.getRelation(), true);
+        if (columns.getParentKey() != null) sheet.autoSizeColumn(columns.getParentKey(), true);
+        if (columns.getEstimation() != null) sheet.autoSizeColumn(columns.getEstimation(), true);
+        if (columns.getSpentTime() != null) sheet.autoSizeColumn(columns.getSpentTime(), true);
+        if (columns.getRemainingTime() != null) sheet.autoSizeColumn(columns.getRemainingTime(), true);
+        if (columns.getStatus() != null) sheet.autoSizeColumn(columns.getStatus(), true);
+        if (columns.getAfVersion() != null) sheet.autoSizeColumn(columns.getAfVersion(), true);
+        if (columns.getComponents() != null) sheet.autoSizeColumn(columns.getComponents(), true);
+        if (columns.getLabels() != null) sheet.autoSizeColumn(columns.getLabels(), true);
+        if (columns.getAssignee() != null) sheet.autoSizeColumn(columns.getAssignee(), true);
     }
 
-    void createCells(XSSFRow row) {
-        row.createCell(properties.getIssueSummaryColumn(), Cell.CELL_TYPE_STRING);
-        row.createCell(properties.getIssueKeyColumn(), Cell.CELL_TYPE_STRING);
-        if (properties.isUnfoldSubtasks()) {
-            row.createCell(properties.getIssueRelationColumn(), Cell.CELL_TYPE_STRING);
-            row.createCell(properties.getIssueParentKeyColumn(), Cell.CELL_TYPE_STRING);
-        }
-        row.createCell(properties.getIssueEstimationColumn(), Cell.CELL_TYPE_NUMERIC);
-        row.createCell(properties.getIssueSpentColumn(), Cell.CELL_TYPE_NUMERIC);
-        row.createCell(properties.getIssueRemainingColumn(), Cell.CELL_TYPE_NUMERIC);
-        row.createCell(properties.getIssueStatusColumn(), Cell.CELL_TYPE_STRING);
-        row.createCell(properties.getIssueComponentsColumn(), Cell.CELL_TYPE_STRING);
-        row.createCell(properties.getIssueAssigneeColumn(), Cell.CELL_TYPE_STRING);
+    private int humanizeRow(int row) {
+        return row + 1;
     }
 
-    void removeRows(XSSFSheet sheet, int startRow) {
-        for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
-            XSSFRow currentRow = sheet.getRow(i);
+    String humanizeColumn(int column) {
+        return CellReference.convertNumToColString(column);
+    }
+
+    private void removeRows(XSSFSheet sheet, int startRow) {
+        for (int i = startRow; i <= sheet.getLastRowNum(); ) {
+            XSSFRow currentRow = sheet.getRow(i++);
             // Skip missing rows
             if (currentRow != null) {
                 sheet.removeRow(currentRow);
@@ -351,35 +472,89 @@ class ProgressReporter {
         }
     }
 
-    boolean isUnfoldRequired(XSSFSheet sheet) {
-        if (properties.getUnfoldMarker() != null) {
-            // Root issue is expected only in first row
-            XSSFRow currentRow = sheet.getRow(properties.getStartProcessingRow());
-            String issueKey = currentRow.getCell(properties.getIssueKeyColumn(), Row.CREATE_NULL_AS_BLANK).getStringCellValue();
-            String unfoldMarker = currentRow.getCell(properties.getUnfoldMarkerColumn(), Row.CREATE_NULL_AS_BLANK).getStringCellValue();
-            if (isIssueInScope(issueKey) && properties.getUnfoldMarker().equals(unfoldMarker)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    boolean isLabelRequired(XSSFSheet sheet) {
-        if (!properties.isLabelUsed()) return false;
-        XSSFRow currentRow = sheet.getRow(properties.getLabelRow());
-        if (currentRow == null) return false;
-        XSSFCell currentCell = currentRow.getCell(properties.getLabelColumn());
-        if (currentCell == null) return false;
-        labels = currentCell.getStringCellValue();
-        return !labels.isEmpty();
-    }
-
-
-    private static double toHours(Integer value) {
+    private double toHours(Integer value) {
         return (double) (value == null ? 0 : value) / 60;
     }
 
-    public boolean isJiraAnonymouslyAccessible() {
-        return properties.isJiraAnonymousAccess();
+    private boolean isIssueInScope(String issueKey) {
+        String[] issueKeyParts = issueKey.split(ISSUE_DIVIDER);
+        if (issueKeyParts.length != 2) {
+            return false;
+        }
+        if (projects != null) {
+            if (!projects.contains(issueKeyParts[0])) {
+                return false;
+            }
+        }
+        return true;
+
+    }
+
+    private String getRootIssueKey(XSSFSheet sheet) {
+        if (config.getReport().getRootIssue() == null) {
+            return null;
+        }
+        XSSFRow row = sheet.getRow(config.getReport().getRootIssue().getIssueKeyRow());
+        if (row == null) return null;
+        XSSFCell cell = row.getCell(config.getReport().getRootIssue().getIssueKeyCol());
+        if (cell == null) return null;
+        if (cell.getStringCellValue().isEmpty()) return null;
+        String key = cell.getStringCellValue();
+        if (!isIssueInScope(key)) return null;
+        return key;
+    }
+
+    private String getJQLQuery(XSSFSheet sheet) {
+        if (config.getReport().getJqlQuery() == null) {
+            return null;
+        }
+        XSSFRow row = sheet.getRow(config.getReport().getJqlQuery().getRow());
+        if (row == null) return null;
+        XSSFCell cell = row.getCell(config.getReport().getJqlQuery().getCol());
+        if (cell == null) return null;
+        if (cell.getStringCellValue().isEmpty()) return null;
+        return cell.getStringCellValue();
+    }
+
+    public void saveReport() throws IOException {
+        String notification = "Rewriting";
+        String targetFile = reportFile;
+
+        if (config.getReport().getReportName() != null) {
+            targetFile = config.getReport().getReportName().getFullName(new DateTime()) + ".xlsx";
+            notification = "Saving report to";
+        }
+
+        log.info(notification + " file " + targetFile + "...");
+        FileOutputStream fos = new FileOutputStream(new File(targetFile));
+        workbook.write(fos);
+        fos.close();
+    }
+
+    private void checkConnection(String errorMessage) throws Exception {
+        try {
+            ServerInfo si = jiraClient.getMetadataClient().getServerInfo().claim();
+            log.info("Successfully connected to Jira instance v." + si.getVersion());
+        } catch (RestClientException e) {
+            disconnect();
+            com.google.common.base.Optional<Integer> statusCode = e.getStatusCode();
+            if (statusCode.isPresent()) {
+                // Handle exception for incorrect credentials
+                if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
+                    log.fatal(errorMessage, e);
+                    throw new IOException(errorMessage);
+                }
+            }
+            log.fatal("Unexpected status code - " + e.getStatusCode(), e);
+            throw e;
+        } catch (Exception e) {
+            disconnect();
+            log.fatal("Unexpected exception - " + e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    public void disconnect() throws IOException {
+        jiraClient.close();
     }
 }

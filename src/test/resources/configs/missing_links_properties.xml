@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../progress_reporter.xsd">
+    <jira>
+        <url>https://jira.atlassian.com</url>
+    </jira>
+    <report>
+        <marker>#</marker>
+        <!--Optional:-->
+        <rootIssue>
+            <issueKeyCell>D3</issueKeyCell>
+            <links>
+                <!--1 or more repetitions:-->
+            </links>
+            <unfoldSubtasks>true</unfoldSubtasks>
+        </rootIssue>
+        <startProcessingRow>6</startProcessingRow>
+        <issueColumns>
+            <key>B</key>
+        </issueColumns>
+    </report>
+</config>

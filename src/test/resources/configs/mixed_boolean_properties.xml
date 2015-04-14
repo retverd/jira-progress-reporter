@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../progress_reporter.xsd">
+    <jira>
+        <url>https://jira.atlassian.com</url>
+        <!-- True as "true" -->
+        <anonymous>true</anonymous>
+    </jira>
+    <report>
+        <marker>#</marker>
+        <processingFlags>
+            <!-- True as "1" -->
+            <issueSummaryUpdate>1</issueSummaryUpdate>
+            <!-- False as "false" -->
+            <recalculateFormulas>false</recalculateFormulas>
+            <!-- False as "0" -->
+            <autosizeColumns>0</autosizeColumns>
+        </processingFlags>
+        <startProcessingRow>6</startProcessingRow>
+        <issueColumns>
+            <key>B</key>
+        </issueColumns>
+    </report>
+</config>

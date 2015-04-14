@@ -11,6 +11,8 @@
 # Generated files
 target
 test-output
+xsd-classes
+*.log
 
 # Custom properties, reports, bat-files and tests
 custom*.*

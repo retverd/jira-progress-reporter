@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../progress_reporter.xsd">
+    <jira>
+        <url>https://jira.atlassian.com</url>
+        <!--Optional:-->
+        <proxy>
+            <host>127.0.0.1</host>
+            <port>8080</port>
+        </proxy>
+        <!--Optional:-->
+        <projects>
+            <!--1 or more repetitions:-->
+        </projects>
+    </jira>
+    <report>
+        <marker>#</marker>
+        <!--Optional:-->
+        <updateDate>
+            <cell>F4</cell>
+            <timePattern>dd MMM yyyy HH:mm ZZ</timePattern>
+        </updateDate>
+        <!--Optional:-->
+        <toHide>
+            <!--Optional:-->
+            <issuePrefixCell>A3</issuePrefixCell>
+            <!--Optional:-->
+            <affectedVersionCell>I3</affectedVersionCell>
+            <!--Optional:-->
+            <componentsCell>J3</componentsCell>
+            <!--Optional:-->
+            <labelsCell>K3</labelsCell>
+        </toHide>
+        <!--Optional:-->
+        <jqlQuery>
+            <cell>B3</cell>
+            <searchStep>50</searchStep>
+        </jqlQuery>
+        <!--Optional:-->
+        <rootIssue>
+            <issueKeyCell>D3</issueKeyCell>
+            <links>
+                <!--1 or more repetitions:-->
+                <entry>relates to</entry>
+                <entry>is duplicated by</entry>
+            </links>
+            <unfoldSubtasks>true</unfoldSubtasks>
+        </rootIssue>
+        <startProcessingRow>6</startProcessingRow>
+        <issueColumns>
+            <!--Optional:-->
+            <summary>A</summary>
+            <key>B</key>
+            <!--Optional:-->
+            <relation>C</relation>
+            <!--Optional:-->
+            <parentKey>D</parentKey>
+            <!--Optional:-->
+            <estimation>E</estimation>
+            <!--Optional:-->
+            <spentTime>F</spentTime>
+            <!--Optional:-->
+            <remainingTime>G</remainingTime>
+            <!--Optional:-->
+            <status>H</status>
+            <!--Optional:-->
+            <afVersion>I</afVersion>
+            <!--Optional:-->
+            <components>J</components>
+            <!--Optional:-->
+            <labels>K</labels>
+            <!--Optional:-->
+            <assignee>L</assignee>
+        </issueColumns>
+        <!--Optional:-->
+        <processingFlags>
+            <issueSummaryUpdate>true</issueSummaryUpdate>
+            <recalculateFormulas>false</recalculateFormulas>
+            <autosizeColumns>false</autosizeColumns>
+        </processingFlags>
+        <!--Optional:-->
+        <reportName>
+            <!--Optional:-->
+            <prefix>prefix_</prefix>
+            <!--Optional:-->
+            <timePattern>yyyy.MM.dd_HH_mm_ss</timePattern>
+            <!--Optional:-->
+            <suffix>_suffix</suffix>
+        </reportName>
+    </report>
+</config>

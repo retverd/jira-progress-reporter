@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:annotation>
+        <xs:documentation>
+            All boolean elements are treated as "false" if element is missing.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:element name="config" type="configType"/>
+    <xs:simpleType name="stringType">
+        <xs:restriction base="xs:string"/>
+    </xs:simpleType>
+    <xs:simpleType name="portType">
+        <xs:restriction base="xs:positiveInteger">
+            <xs:maxInclusive value="65535"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="cellType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="([A-Z])+([0-9])+"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="columnType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="([A-Z])+"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="rowType">
+        <xs:restriction base="xs:nonNegativeInteger">
+            <xs:maxInclusive value="1048576"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="proxyType">
+        <xs:all>
+            <xs:element type="stringType" name="host"/>
+            <xs:element type="portType" name="port"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="listType">
+        <xs:sequence>
+            <xs:element type="stringType" name="entry" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="jiraType">
+        <xs:all>
+            <xs:element type="stringType" name="url"/>
+            <xs:element type="xs:boolean" name="anonymous" minOccurs="0"/>
+            <xs:element type="proxyType" name="proxy" minOccurs="0"/>
+            <xs:element type="listType" name="projects" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="updateDateType">
+        <xs:all>
+            <xs:annotation>
+                <xs:documentation>
+                    Find syntax for element timePattern here: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/DateTimeFormat.html.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:element type="cellType" name="cell"/>
+            <xs:element type="stringType" name="timePattern"/>
+        </xs:all>
+    </xs:complexType>
+    <!-- -->
+    <xs:complexType name="toHideType">
+        <xs:annotation>
+            <xs:documentation>
+                All elements are treated as Java Regular Expressions, find syntax here: https://docs.oracle.com/javase/tutorial/essential/regex/.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:all>
+            <xs:element type="cellType" name="issuePrefixCell" minOccurs="0"/>
+            <xs:element type="cellType" name="affectedVersionCell" minOccurs="0"/>
+            <xs:element type="cellType" name="componentsCell" minOccurs="0"/>
+            <xs:element type="cellType" name="labelsCell" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="jqlQueryType">
+        <xs:all>
+            <xs:element type="cellType" name="cell"/>
+            <xs:element type="xs:positiveInteger" name="searchStep"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="rootIssueType">
+        <xs:all>
+            <xs:element type="cellType" name="issueKeyCell"/>
+            <xs:element type="listType" name="links"/>
+            <xs:element type="xs:boolean" name="unfoldSubtasks"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="issueColumnsType">
+        <xs:all>
+            <xs:element type="columnType" name="summary" minOccurs="0"/>
+            <xs:element type="columnType" name="key"/>
+            <xs:element type="columnType" name="relation" minOccurs="0"/>
+            <xs:element type="columnType" name="parentKey" minOccurs="0"/>
+            <xs:element type="columnType" name="estimation" minOccurs="0"/>
+            <xs:element type="columnType" name="spentTime" minOccurs="0"/>
+            <xs:element type="columnType" name="remainingTime" minOccurs="0"/>
+            <xs:element type="columnType" name="status" minOccurs="0"/>
+            <xs:element type="columnType" name="afVersion" minOccurs="0"/>
+            <xs:element type="columnType" name="components" minOccurs="0"/>
+            <xs:element type="columnType" name="labels" minOccurs="0"/>
+            <xs:element type="columnType" name="assignee" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="processingFlagsType">
+        <xs:all>
+            <xs:annotation>
+                <xs:documentation>
+                    Setting recalculateFormulas = true may lead to crash, see https://github.com/retverd/jira-progress-reporter/issues/1 for more details.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:element type="xs:boolean" name="issueSummaryUpdate"/>
+            <xs:element type="xs:boolean" name="recalculateFormulas"/>
+            <xs:element type="xs:boolean" name="autosizeColumns"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="reportNameType">
+        <xs:all>
+            <xs:annotation>
+                <xs:documentation>
+                    Find syntax for element timePattern here: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/DateTimeFormat.html.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:element type="stringType" name="prefix" minOccurs="0"/>
+            <xs:element type="stringType" name="timePattern" minOccurs="0"/>
+            <xs:element type="stringType" name="suffix" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="reportType">
+        <xs:all>
+            <xs:element type="stringType" name="marker"/>
+            <xs:element type="updateDateType" name="updateDate" minOccurs="0"/>
+            <xs:element type="toHideType" name="toHide" minOccurs="0"/>
+            <xs:element type="jqlQueryType" name="jqlQuery" minOccurs="0"/>
+            <xs:element type="rootIssueType" name="rootIssue" minOccurs="0"/>
+            <xs:element type="rowType" name="startProcessingRow"/>
+            <xs:element type="issueColumnsType" name="issueColumns"/>
+            <xs:element type="processingFlagsType" name="processingFlags" minOccurs="0"/>
+            <xs:element type="reportNameType" name="reportName" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+    <xs:complexType name="configType">
+        <xs:all>
+            <xs:element type="jiraType" name="jira"/>
+            <xs:element type="reportType" name="report"/>
+        </xs:all>
+    </xs:complexType>
+</xs:schema>

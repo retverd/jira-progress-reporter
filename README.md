@@ -6,33 +6,32 @@ Based on jira-rest-java-client-re:
 * Issue tracker: https://github.com/retverd/jira-rest-java-client-re/issues
 
 # how to use
-* download any release you want https://github.com/retverd/jira-progress-reporter/releases;
-* update default.xlsx (put your own issues keys and summaries, root issues or labels if required);
-* update default.properties according to changes in default.xlsx;
+* download any release you want https://github.com/retverd/jira-progress-reporter/releases or use latest commit;
+* customize default.xlsx according to your needs;
+* generate xml from progress_reporter.xsd and customize it or default_config.xml according to changes in report template considering annotations in progress_reporter.xsd; 
+* validate configuration xml file against schema;
 * update default.bat if file names were changes;
 * launch bat-file and follow prompts;
-* submit bugs if you'll find any, but please consider existing issues: https://github.com/retverd/jira-progress-reporter/issues.
+* submit bugs if you'll find any, but please consider existing ones: https://github.com/retverd/jira-progress-reporter/issues.
 
 # how it works
 * Load and parse file with properties;
+* Establish connection to Jira;
 * Load file with report template;
 * Go through all sheets one by one:
-    * If sheet has sequence of chars from property excel.tab.regular.marker then sheet is being processed, otherwise sheet is skipped:
-        * If excel.update properties are set then timestamp is added to corresponding cell;
-        * If excel.label properties are set, corresponding cell is not empty and there are issues that belongs to project(s) mentioned in property excel.project.key and have specified label(s) then:
-    		* All rows starting from excel.start_processing.row and below are being deleted;
+    * If sheet has sequence of chars from tag config -> report -> marker then sheet is being processed, otherwise sheet is skipped:
+        * If config -> report -> updateDate properties are set then timestamp is added to corresponding cell;
+        * If config -> report -> jqlQuery properties are set and corresponding cell is not empty then:
+    		* All rows starting from config -> report -> startProcessingRow and below are being deleted;
 			* All issues found are published starting from excel.start_processing.row and below;
-			* Processing is being switched to the new sheet;
-        * If excel.unfold.marker property is set, marker was found in excel.unfold.marker.column and excel.start_processing.row and issue in excel.start_processing.row belongs to project mentioned in property excel.project.key then:
-        	* All rows starting from excel.start_processing.row + 1 and below are being deleted;
-        	* Details for root issue (that is going to be unfolded) are published, all links of the issue are being analyzed;
-        	* All issues that linked using relation mentioned in excel.unfold.links.list recurrent analysis is being applied;
-        	* For each issue published it's details and details about subtasks if any found;
-        	* Processing is being switched to the new sheet;
-		* All rows are being analyzed, if issue key that belongs to project mentioned in property excel.project.key is found then issue details are being published;
-		* When last row is reached, processing is being switched to the new sheet;
-* If property excel.recalculate.formulas is set to y, then all formulas in document are being recalculated;
-* If property report.filename.pattern is set, then report saved to new file;
+        * Else if config -> report -> rootIssue properties are set and corresponding cell contains issue key that belongs to project(s) listed in config -> jira -> projects then:
+        	* All rows starting from config -> report -> startProcessingRow and below are being deleted;
+        	* Details for root issue are published, all links of the issue that listed in config -> report -> rootIssue -> links are being analyzed recurrent;
+        	* For each issue it's details and details about subtasks if any found are published;
+		* Else all rows are being analyzed, if issue key that belongs to project(s) listed in config -> jira -> projects is found then issue details are being published;
+		* If property config -> report -> processingFlags -> autosizeColumns is set to true then all columns specified in config -> report -> issueColumns are adjusted to their new sizes; 
+* If property config -> report -> processingFlags -> recalculateFormulas is set to true, then all formulas in document are being recalculated;
+* If properties config -> report -> reportName are set, then report saved to new file;
 * Otherwise existing file is being overwritten.
 
 # disclaimer
@@ -42,19 +41,13 @@ I'm not a Java expert, I've just automated some reporting routines to simplify m
 * fork and pull request.
 
 # limitations
-* Only xlsx files are expected to be supported;
+* Tested with Excel 2010;
 * Tested with JIRA v6.4#64014, v6.3.12#6343 and v6.4#64014;
-* Retrieve issues with label:
-    * Only intersection of labels is supported;
-    * All rows will be deleted before population sheet with search results;
-    * Issues with labels are retrieved only from project(s) specified in parameter excel.project.key;
-    * Labels has higher priority than root issues;
+* Only xlsx files are expected to be supported;
+* Retrieve issues using jql query:
     * For issues retrieved by search parent issue and relation will not be shown;
-    * Issues ordered by issueKey ASC;
-* Unfold issues (retrieve all linked issues):
-    * Only one root issue per sheet is supported;
-    * Root issue should be first;
-    * All rows below root issue will be deleted;
+* Retrieve issues linked to root one:
+	* There is no check for duplicates, so issue linked to several issues will be published several times;
     * Links for sub-tasks are not being analyzed;
 * Use Java 7u67+ for Windows to avoid problems with column auto sizing;
 * Time in report is only in hours;

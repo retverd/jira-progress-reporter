@@ -1,57 +1,35 @@
 package ru.retverd.jira.reporter.progress;
 
-import java.io.Console;
-import java.io.IOException;
-import java.util.Scanner;
+import org.apache.log4j.Logger;
+import org.apache.log4j.xml.DOMConfigurator;
+
+import javax.naming.ConfigurationException;
 
 public class Starter {
-    public static void main(String[] args) throws Exception {
-        // All things related to prompt
-        String pass;
-        String login;
-        String loginPrompt = "Please enter your login: ";
-        String passPrompt = "Please enter your password: ";
+    private static final Logger log = Logger.getLogger(Starter.class.getName());
+
+    public static void main(String[] args) throws Throwable {
+        DOMConfigurator.configure("log4j.xml");
+        log.info("Starting!");
 
         if (args.length < 2) {
-            throw new IOException("Missing required parameters! See default.bat for more details.");
+            log.fatal("Missing required parameters! See default.bat for more details.");
+            throw new ConfigurationException("Missing required parameters! See default.bat for more details.");
         }
 
         // Load and check required files
-        ProgressReporter reportHandler = new ProgressReporter(args[0], args[1]);
-
-        if (reportHandler.isJiraAnonymouslyAccessible()) {
-            reportHandler.connectToJiraAnonymously();
-        } else {
-            // Request credentials for JIRA
-            // TODO handle missing credentials!
-            if (args.length == 4) {
-                login = args[2];
-                pass = args[3];
-            } else {
-                Console console = System.console();
-                System.out.print(loginPrompt);
-                if (console == null) {
-                    Scanner in = new Scanner(System.in);
-                    login = in.next();
-                    System.out.print(passPrompt);
-                    pass = in.next();
-                    in.close();
-                } else {
-                    login = console.readLine();
-                    System.out.print(passPrompt);
-                    pass = new String(console.readPassword());
-                }
-            }
-            reportHandler.connectToJiraWithCredentials(login, pass);
-        }
+        ProgressReporter reportHandler = new ProgressReporter(args);
 
         try {
             // Update report with new values from Jira
             reportHandler.updateReport();
             // Save updated report
-            reportHandler.saveReport(args[1]);
+            reportHandler.saveReport();
         } finally {
-            reportHandler.disconnectFromJIRA();
+            reportHandler.disconnect();
         }
+        log.info("Report update was successfully completed!");
+        System.out.println("Press Enter to exit...");
+        System.in.read();
     }
 }
