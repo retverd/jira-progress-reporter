@@ -7,6 +7,8 @@ import com.atlassian.jira.rest.client.api.domain.*;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import org.apache.log4j.Logger;
 import org.apache.poi.POIXMLException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
@@ -161,6 +163,10 @@ public class ProgressReporter {
         } finally {
             fis.close();
         }
+    }
+
+    static private Double toHours(Integer value) {
+        return (double) (value == null ? 0 : value) / 60;
     }
 
     public void updateReport() {
@@ -347,9 +353,6 @@ public class ProgressReporter {
     }
 
     private void publishIssueDetails(XSSFRow row, Issue issue, String relation, String parentKey) {
-        String est = "N/A";
-        String spent = "N/A";
-        String rem = "N/A";
         ReportType report = config.getReport();
 
         if (report.getProcessingFlags().isIssueSummaryUpdate() && report.getIssueColumns().getSummary() != null) {
@@ -367,23 +370,9 @@ public class ProgressReporter {
         }
 
         TimeTracking time = issue.getTimeTracking();
-        if (time != null) {
-            est = String.valueOf(toHours(time.getOriginalEstimateMinutes()));
-            spent = String.valueOf(toHours(time.getTimeSpentMinutes()));
-            rem = String.valueOf(toHours(time.getRemainingEstimateMinutes()));
-        }
-
-        if (report.getIssueColumns().getEstimation() != null) {
-            row.getCell(report.getIssueColumns().getEstimation(), Row.CREATE_NULL_AS_BLANK).setCellValue(est);
-        }
-
-        if (report.getIssueColumns().getSpentTime() != null) {
-            row.getCell(report.getIssueColumns().getSpentTime(), Row.CREATE_NULL_AS_BLANK).setCellValue(spent);
-        }
-
-        if (report.getIssueColumns().getRemainingTime() != null) {
-            row.getCell(report.getIssueColumns().getRemainingTime(), Row.CREATE_NULL_AS_BLANK).setCellValue(rem);
-        }
+        publishTimeToCell(row, report.getIssueColumns().getEstimation(), time == null ? null : toHours(time.getOriginalEstimateMinutes()));
+        publishTimeToCell(row, report.getIssueColumns().getSpentTime(), time == null ? null : toHours(time.getTimeSpentMinutes()));
+        publishTimeToCell(row, report.getIssueColumns().getRemainingTime(), time == null ? null : toHours(time.getRemainingEstimateMinutes()));
 
         if (report.getIssueColumns().getStatus() != null) {
             row.getCell(report.getIssueColumns().getStatus(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getStatus().getName());
@@ -472,8 +461,21 @@ public class ProgressReporter {
         }
     }
 
-    private double toHours(Integer value) {
-        return (double) (value == null ? 0 : value) / 60;
+    private void publishTimeToCell(XSSFRow row, Integer cellIndex, Double value) {
+        if (cellIndex != null) {
+            if (row.getCell(cellIndex) != null) {
+                row.getCell(cellIndex).setCellValue(value);
+            } else {
+                XSSFCell cell = row.createCell(cellIndex, Cell.CELL_TYPE_NUMERIC);
+                if (config.getReport().getTimeTrackingFormat() != null) {
+                    XSSFCellStyle style = workbook.createCellStyle();
+                    DataFormat format = workbook.createDataFormat();
+                    style.setDataFormat(format.getFormat(config.getReport().getTimeTrackingFormat()));
+                    cell.setCellStyle(style);
+                }
+                cell.setCellValue(value);
+            }
+        }
     }
 
     private boolean isIssueInScope(String issueKey) {

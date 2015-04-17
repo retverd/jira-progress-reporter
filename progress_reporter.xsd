@@ -128,6 +128,12 @@
     </xs:complexType>
     <xs:complexType name="reportType">
         <xs:all>
+            <xs:annotation>
+                <xs:documentation>
+                    Find syntax for element timeTrackingFormat here: https://support.microsoft.com/en-us/kb/264372/,
+                    https://support.office.com/en-US/article/create-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4.
+                </xs:documentation>
+            </xs:annotation>
             <xs:element type="stringType" name="marker"/>
             <xs:element type="updateDateType" name="updateDate" minOccurs="0"/>
             <xs:element type="toHideType" name="toHide" minOccurs="0"/>
@@ -135,6 +141,7 @@
             <xs:element type="rootIssueType" name="rootIssue" minOccurs="0"/>
             <xs:element type="rowType" name="startProcessingRow"/>
             <xs:element type="issueColumnsType" name="issueColumns"/>
+            <xs:element type="stringType" name="timeTrackingFormat" minOccurs="0"/>
             <xs:element type="processingFlagsType" name="processingFlags" minOccurs="0"/>
             <xs:element type="reportNameType" name="reportName" minOccurs="0"/>
         </xs:all>

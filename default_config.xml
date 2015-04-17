@@ -70,6 +70,7 @@
             <!--Optional:-->
             <assignee>L</assignee>
         </issueColumns>
+        <timeTrackingFormat>0.00" h"</timeTrackingFormat>
         <!--Optional:-->
         <processingFlags>
             <issueSummaryUpdate>true</issueSummaryUpdate>

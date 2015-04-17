@@ -93,6 +93,7 @@ public class PropertiesTests {
         Assert.assertEquals(sample.getReport().getIssueColumns().getComponents(), Integer.valueOf(9), "Column for issue component(s) is invalid!");
         Assert.assertEquals(sample.getReport().getIssueColumns().getLabels(), Integer.valueOf(10), "Column for issue label(s) is invalid!");
         Assert.assertEquals(sample.getReport().getIssueColumns().getAssignee(), Integer.valueOf(11), "Column for issue assignee is invalid!");
+        Assert.assertEquals(sample.getReport().getTimeTrackingFormat(), "0.00", "Time tracking format is invalid!");
         Assert.assertNotNull(sample.getReport().getProcessingFlags(), "Processing flags class was not instantiated!");
         Assert.assertEquals(sample.getReport().getProcessingFlags().isIssueSummaryUpdate(), true, "IssueSummaryUpdate flag is invalid!");
         Assert.assertEquals(sample.getReport().getProcessingFlags().isRecalculateFormulas(), false, "RecalculateFormulas flag is invalid!");
@@ -140,6 +141,7 @@ public class PropertiesTests {
         Assert.assertNull(sample.getReport().getIssueColumns().getComponents(), "Column for issue component(s) is invalid!");
         Assert.assertNull(sample.getReport().getIssueColumns().getLabels(), "Column for issue label(s) is invalid!");
         Assert.assertNull(sample.getReport().getIssueColumns().getAssignee(), "Column for issue assignee is invalid!");
+        Assert.assertNull(sample.getReport().getTimeTrackingFormat(), "Time tracking format is invalid!");
         Assert.assertNull(sample.getReport().getProcessingFlags(), "Processing flags class was instantiated!");
         Assert.assertNull(sample.getReport().getReportName(), "Report name class was not instantiated!");
     }

@@ -17,7 +17,7 @@
         </projects>
     </jira>
     <report>
-        <marker>#</marker>
+        <marker># </marker>
         <!--Optional:-->
         <updateDate>
             <cell>F4</cell>
@@ -75,6 +75,7 @@
             <!--Optional:-->
             <assignee>L</assignee>
         </issueColumns>
+        <timeTrackingFormat>0.00</timeTrackingFormat>
         <!--Optional:-->
         <processingFlags>
             <issueSummaryUpdate>true</issueSummaryUpdate>

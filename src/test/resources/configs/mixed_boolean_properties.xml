@@ -19,5 +19,6 @@
         <issueColumns>
             <key>B</key>
         </issueColumns>
+        <timeTrackingFormat>0.00</timeTrackingFormat>
     </report>
 </config>

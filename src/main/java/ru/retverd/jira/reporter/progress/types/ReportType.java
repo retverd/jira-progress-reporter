@@ -14,6 +14,7 @@ public class ReportType {
     @XmlTransient
     protected int startProcessingRow;
     protected IssueColumnsType issueColumns;
+    private String timeTrackingFormat;
     protected ProcessingFlagsType processingFlags;
     protected ReportNameType reportName;
 
@@ -52,6 +53,10 @@ public class ReportType {
 
     public IssueColumnsType getIssueColumns() {
         return issueColumns;
+    }
+
+    public String getTimeTrackingFormat() {
+        return timeTrackingFormat;
     }
 
     public ProcessingFlagsType getProcessingFlags() {
