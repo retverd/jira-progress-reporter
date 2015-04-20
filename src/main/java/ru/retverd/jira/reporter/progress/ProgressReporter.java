@@ -6,7 +6,7 @@ import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.*;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import org.apache.log4j.Logger;
-import org.apache.poi.POIXMLException;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Row;
@@ -15,16 +15,24 @@ import org.apache.poi.xssf.usermodel.*;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.xml.sax.SAXException;
 import ru.retverd.jira.reporter.progress.types.ConfigType;
 import ru.retverd.jira.reporter.progress.types.IssueColumnsType;
 import ru.retverd.jira.reporter.progress.types.ReportType;
 
 import javax.naming.ConfigurationException;
+import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import java.io.*;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.Console;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 public class ProgressReporter {
@@ -32,11 +40,14 @@ public class ProgressReporter {
     static private final String ISSUE_DIVIDER = "-";
     // String for subtasks
     static private final String SUBTASK_OF_VALUE = "subtask of";
+    // String for subtasks
+    static private final String SCHEMA_FILE = "progress_reporter.xsd";
     //
     static private final Integer AUTH_FAIL_STATUS = 401;
     //
     private static final Logger log = Logger.getLogger(ProgressReporter.class.getName());
-    private String reportFile;
+    //
+    private boolean saveFlag = false;
     // Relevant for one sheet only
     private String issueSummaryPrefixToHide;
     private Map<String, String> linksList;
@@ -50,46 +61,64 @@ public class ProgressReporter {
     private Set<String> searchFields;
     private List<String> projects;
 
-    public ProgressReporter(String[] args) throws Throwable {
-        String configFile = args[0];
-        reportFile = args[1];
-
-        // Load file with properties
+    public void loadConfigFile(String configFile) throws ConfigurationException {
         log.info("Loading and parsing properties from " + configFile);
-        Unmarshaller unmarshaller = JAXBContext.newInstance(ConfigType.class).createUnmarshaller();
-        unmarshaller.setEventHandler(new javax.xml.bind.helpers.DefaultValidationEventHandler());
-
         try {
-            config = (ConfigType) unmarshaller.unmarshal(new File(configFile));
-        } catch (JAXBException ex) {
-            if (ex.getMessage() == null) {
-                log.fatal(ex.getLinkedException().getMessage(), ex.getLinkedException());
-                throw ex.getLinkedException();
+            Unmarshaller unmarshaller = JAXBContext.newInstance(ConfigType.class).createUnmarshaller();
+            // Optional schema validation
+            File schemaFile = new File(SCHEMA_FILE);
+            if (schemaFile.exists()) {
+                SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                Schema schema = schemaFactory.newSchema(schemaFile);
+                unmarshaller.setSchema(schema);
             }
+            config = (ConfigType) unmarshaller.unmarshal(new File(configFile));
+        } catch (JAXBException e) {
+            ConfigurationException ex = new ConfigurationException();
+            ex.setRootCause(e);
+            if (e.getMessage() == null) {
+                log.fatal(e.getLinkedException().getMessage(), e.getLinkedException());
+            } else {
+                log.fatal(e.getMessage(), e);
+            }
+            throw ex;
+        } catch (SAXException e) {
+            log.fatal("Something wrong happened during xsd-schema loading.", e);
+            ConfigurationException ex = new ConfigurationException();
+            ex.setRootCause(e);
+            throw ex;
         }
+    }
 
+    public void connectToJira(String login, String pass) throws ConfigurationException, IOException {
         if (config.getJira().getProxy() != null) {
             System.setProperty("https.proxyHost", config.getJira().getProxy().getHost());
             System.setProperty("https.proxyPort", config.getJira().getProxy().getPort());
             log.info("Proxy server " + config.getJira().getProxy().getHost() + ":" + config.getJira().getProxy().getPort() + " is being used!");
         }
 
+        String errorMessage;
+        URI uri;
+
+        try {
+            uri = new URI(config.getJira().getUrl());
+        } catch (URISyntaxException e) {
+            log.fatal(e.getMessage(), e);
+            ConfigurationException ex = new ConfigurationException();
+            ex.setRootCause(e);
+            throw ex;
+        }
+
         // Connect to Jira
         if (config.getJira().isAnonymous()) {
-            // TODO handle missing access!
             JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-            jiraClient = factory.createWithAnonymousAccess(new URI(config.getJira().getUrl()));
+            jiraClient = factory.createWithAnonymousAccess(uri);
             log.info("Anonymous factory was used.");
-            checkConnection("Anonymous access is prohibited!");
+            errorMessage = "Anonymous access is prohibited!";
         } else {
             // Request credentials for JIRA
-            String login;
-            String pass;
             // TODO handle empty credentials!
-            if (args.length == 4) {
-                login = args[2];
-                pass = args[3];
-            } else {
+            if (login == null && pass == null) {
                 String loginPrompt = "Please enter your login: ";
                 String passPrompt = "Please enter your password: ";
                 Console console = System.console();
@@ -106,13 +135,39 @@ public class ProgressReporter {
                     pass = new String(console.readPassword());
                 }
             }
-            // TODO handle incorrect credentials!
             JiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-            jiraClient = factory.createWithBasicHttpAuthentication(new URI(config.getJira().getUrl()), login, pass);
+            jiraClient = factory.createWithBasicHttpAuthentication(uri, login, pass);
             log.info("Basic http authentication factory was used.");
-            checkConnection("Authentication error! Please check your credentials!");
+            errorMessage = "Authentication error! Please check your credentials!";
         }
 
+        try {
+            ServerInfo si = jiraClient.getMetadataClient().getServerInfo().claim();
+            log.info("Successfully connected to Jira instance v." + si.getVersion());
+        } catch (RestClientException e) {
+            disconnect();
+            com.google.common.base.Optional<Integer> statusCode = e.getStatusCode();
+            if (statusCode.isPresent()) {
+                // TODO handle incorrect credentials!
+                // TODO handle missing access!
+                if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
+                    log.fatal(errorMessage, e);
+                    ConfigurationException ex = new ConfigurationException();
+                    ex.setRootCause(e);
+                    throw ex;
+                }
+                log.fatal(e.getMessage(), e);
+                throw e;
+            }
+            log.fatal(e.getMessage(), e);
+            throw e;
+        } catch (RuntimeException e) {
+            disconnect();
+            throw e;
+        }
+    }
+
+    public void initObjects() {
         this.searchFields = new HashSet<String>();
         searchFields.add("summary");
         searchFields.add("created");
@@ -146,22 +201,30 @@ public class ProgressReporter {
                 log.error("Issue link type '" + link + "' is missing on server!");
             }
         }
+    }
 
+    public void loadReportTemplate(String reportTemplate) throws ConfigurationException {
         // Load Excel file with report timePattern
-        log.info("Reading report file " + reportFile);
+        log.info("Reading report file " + reportTemplate);
         // OPCPackage is not used due to problems with saving results: org.apache.poi.openxml4j.exceptions.OpenXML4JException: The part /docProps/app.xml fail
         // to be saved in the stream with marshaller org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
-        FileInputStream fis = new FileInputStream(reportFile);
+        File file = new File(reportTemplate);
+        if (!file.exists()) {
+            log.fatal(System.getProperty("user.dir") + "\\" + reportTemplate + " (The system cannot find the file specified)");
+            throw new ConfigurationException(System.getProperty("user.dir") + "\\" + reportTemplate + " (The system cannot find the file specified)");
+        }
         try {
-            workbook = new XSSFWorkbook(fis);
-        } catch (POIXMLException e) {
-            log.fatal("Report file " + reportFile + " has incorrect format.", e);
-            throw new ConfigurationException("Report file " + reportFile + " has incorrect format.");
-        } catch (Throwable e) {
-            log.fatal("Unexpected exception - " + e.getMessage(), e);
-            throw e;
-        } finally {
-            fis.close();
+            workbook = new XSSFWorkbook(file);
+        } catch (InvalidFormatException e) {
+            log.fatal("Something went wrong during loading report file! Exception " + e.getClass() + " was thrown with message " + e.getMessage(), e);
+            ConfigurationException ex = new ConfigurationException();
+            ex.setRootCause(e);
+            throw ex;
+        } catch (IOException e) {
+            log.fatal("Something wrong happened during load " + reportTemplate + ": " + e.getMessage());
+            ConfigurationException ex = new ConfigurationException();
+            ex.setRootCause(e);
+            throw ex;
         }
     }
 
@@ -315,7 +378,6 @@ public class ProgressReporter {
             // Refresh all formulas if required
             // Leads to exceptions on some Excel files with error message: Unexpected ptg class (org.apache.poi.ss.formula.ptg.ArrayPtg)
             // See https://github.com/retverd/jira-progress-reporter/issues/1 (Problems with evaluateAllFormulaCells)
-
             if (config.getReport().getProcessingFlags().isRecalculateFormulas()) {
                 log.info("Recalculating formulas...");
                 XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
@@ -518,45 +580,41 @@ public class ProgressReporter {
         return cell.getStringCellValue();
     }
 
-    public void saveReport() throws IOException {
+    public void saveReport(String reportFile) throws ConfigurationException {
         String notification = "Rewriting";
-        String targetFile = reportFile;
 
         if (config.getReport().getReportName() != null) {
-            targetFile = config.getReport().getReportName().getFullName(new DateTime()) + ".xlsx";
+            reportFile = config.getReport().getReportName().getFullName(new DateTime()) + ".xlsx";
             notification = "Saving report to";
         }
 
-        log.info(notification + " file " + targetFile + "...");
-        FileOutputStream fos = new FileOutputStream(new File(targetFile));
-        workbook.write(fos);
-        fos.close();
-    }
-
-    private void checkConnection(String errorMessage) throws Exception {
+        log.info(notification + " file " + reportFile + "...");
         try {
-            ServerInfo si = jiraClient.getMetadataClient().getServerInfo().claim();
-            log.info("Successfully connected to Jira instance v." + si.getVersion());
-        } catch (RestClientException e) {
-            disconnect();
-            com.google.common.base.Optional<Integer> statusCode = e.getStatusCode();
-            if (statusCode.isPresent()) {
-                // Handle exception for incorrect credentials
-                if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
-                    log.fatal(errorMessage, e);
-                    throw new IOException(errorMessage);
-                }
-            }
-            log.fatal("Unexpected status code - " + e.getStatusCode(), e);
-            throw e;
-        } catch (Exception e) {
-            disconnect();
-            log.fatal("Unexpected exception - " + e.getMessage(), e);
-            throw e;
+            FileOutputStream fos = new FileOutputStream(new File(reportFile));
+            workbook.write(fos);
+            fos.close();
+            saveFlag = true;
+        } catch (IOException e) {
+            log.fatal("Something wrong happened during saving report: " + e.getMessage());
+            ConfigurationException ex = new ConfigurationException();
+            ex.setRootCause(e);
+            throw ex;
         }
     }
 
-    public void disconnect() throws IOException {
-        jiraClient.close();
+    public void disconnect() {
+        try {
+            jiraClient.close();
+        } catch (IOException e) {
+            log.error("Something wrong happened during JIRA client disconnection: " + e.getMessage());
+        }
+    }
+
+    public boolean isReportSaved() {
+        return saveFlag;
+    }
+
+    public ConfigType getConfig() {
+        return config;
     }
 }
