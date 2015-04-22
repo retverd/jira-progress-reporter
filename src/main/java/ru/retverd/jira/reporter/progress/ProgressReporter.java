@@ -344,13 +344,15 @@ public class ProgressReporter {
                     // Publish details for root issue
                     XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
                     log.info("Retrieving issue " + rootIssueKey);
-                    publishIssueDetails(row, jiraClient.getIssueClient().getIssue(rootIssueKey).claim(), null, null);
-
-                    // Walk through linked issues and subtasks and add rows with details
-                    boolean flag = config.getReport().getProcessingFlags().isIssueSummaryUpdate();
-                    config.getReport().getProcessingFlags().setIssueSummaryUpdate(true);
-                    publishDependentIssues(sheet, rootIssueKey);
-                    config.getReport().getProcessingFlags().setIssueSummaryUpdate(flag);
+                    Issue rootIssue = getJiraIssue(rootIssueKey);
+                    if (rootIssue != null) {
+                        publishIssueDetails(row, rootIssue, null, null);
+                        // Walk through linked issues and subtasks and add rows with details
+                        boolean flag = config.getReport().getProcessingFlags().isIssueSummaryUpdate();
+                        config.getReport().getProcessingFlags().setIssueSummaryUpdate(true);
+                        publishDependentIssues(sheet, rootIssue);
+                        config.getReport().getProcessingFlags().setIssueSummaryUpdate(flag);
+                    }
                 } else {
                     int rowNumber = config.getReport().getStartProcessingRow();
                     XSSFRow row = sheet.getRow(rowNumber++);
@@ -360,7 +362,10 @@ public class ProgressReporter {
                             String issueKey = cell.getStringCellValue();
                             if (isIssueInScope(issueKey)) {
                                 log.info("Retrieving issue " + issueKey);
-                                publishIssueDetails(row, jiraClient.getIssueClient().getIssue(issueKey).claim(), null, null);
+                                Issue issue = getJiraIssue(issueKey);
+                                if (issue != null) {
+                                    publishIssueDetails(row, issue, null, null);
+                                }
                             }
                         }
                         row = sheet.getRow(rowNumber++);
@@ -386,18 +391,18 @@ public class ProgressReporter {
 
     }
 
-    private void publishDependentIssues(XSSFSheet sheet, String issueKey) {
-        Issue rootIssue = jiraClient.getIssueClient().getIssue(issueKey).claim();
-
+    private void publishDependentIssues(XSSFSheet sheet, Issue rootIssue) {
         Iterable<IssueLink> issueLinks = rootIssue.getIssueLinks();
         if (issueLinks != null) {
-            // Handle referenced issues
             for (IssueLink issueLink : issueLinks) {
                 if (linksList.containsKey(issueLink.getIssueLinkType().getDescription())) {
-                    log.info("Retrieving issue " + issueLink.getTargetIssueKey());
                     XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
-                    publishIssueDetails(row, jiraClient.getIssueClient().getIssue(issueLink.getTargetIssueKey()).claim(), linksList.get(issueLink.getIssueLinkType().getDescription()), issueKey);
-                    publishDependentIssues(sheet, issueLink.getTargetIssueKey());
+                    log.info("Retrieving issue " + issueLink.getTargetIssueKey());
+                    Issue linkedIssue = getJiraIssue(issueLink.getTargetIssueKey());
+                    if (linkedIssue != null) {
+                        publishIssueDetails(row, linkedIssue, linksList.get(issueLink.getIssueLinkType().getDescription()), rootIssue.getKey());
+                        publishDependentIssues(sheet, linkedIssue);
+                    }
                 }
             }
         }
@@ -405,11 +410,13 @@ public class ProgressReporter {
         Iterable<Subtask> subTasks = rootIssue.getSubtasks();
 
         if (subTasks != null && config.getReport().getRootIssue().isUnfoldSubtasks()) {
-            // Handle subtasks
             for (Subtask subtask : subTasks) {
-                log.info("Retrieving issue " + subtask.getIssueKey());
                 XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
-                publishIssueDetails(row, jiraClient.getIssueClient().getIssue(subtask.getIssueKey()).claim(), SUBTASK_OF_VALUE, issueKey);
+                log.info("Retrieving issue " + subtask.getIssueKey());
+                Issue subTask = getJiraIssue(subtask.getIssueKey());
+                if (subTask != null) {
+                    publishIssueDetails(row, subTask, SUBTASK_OF_VALUE, rootIssue.getKey());
+                }
             }
         }
     }
@@ -552,6 +559,26 @@ public class ProgressReporter {
         }
         return true;
 
+    }
+
+    private Issue getJiraIssue(String issueKey) {
+        Issue issue = null;
+
+        try {
+            issue = jiraClient.getIssueClient().getIssue(issueKey).claim();
+        } catch (RestClientException e) {
+            if (e.getStatusCode().isPresent()) {
+                if (e.getStatusCode().get().equals(404)) {
+                    log.error("Issue " + issueKey + " wasn't found. It doesn't exist or you have not enought rights to access it.");
+                } else {
+                    log.error("Issue " + issueKey + " wasn't found. Error message: \"" + e.getMessage() + "\". Status code: " + e.getStatusCode().get() + ".");
+                }
+            } else {
+                log.error("Issue " + issueKey + " wasn't found. Error message: \"" + e.getMessage() + "\". No status code provided.");
+            }
+        }
+
+        return issue;
     }
 
     private String getRootIssueKey(XSSFSheet sheet) {
