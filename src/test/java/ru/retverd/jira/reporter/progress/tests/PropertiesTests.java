@@ -1,5 +1,7 @@
 package ru.retverd.jira.reporter.progress.tests;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.xml.sax.SAXParseException;
@@ -8,6 +10,7 @@ import ru.retverd.jira.reporter.progress.ProgressReporter;
 import javax.naming.ConfigurationException;
 import javax.xml.bind.UnmarshalException;
 import java.io.FileNotFoundException;
+import java.util.Locale;
 
 public class PropertiesTests {
     @Test
@@ -30,6 +33,7 @@ public class PropertiesTests {
     @Test(groups = "core")
     public void testAllProperties() throws Throwable {
         String configFile = "src\\test\\resources\\configs\\all_properties.xml";
+        DateTime dateTime = new DateTime();
 
         ProgressReporter reporter = new ProgressReporter();
         reporter.loadConfigFile(configFile);
@@ -48,7 +52,7 @@ public class PropertiesTests {
         Assert.assertNotNull(reporter.getConfig().getReport(), "Report class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getReport().getMarker(), "# ", "Marker of regular sheet is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getUpdateDate(), "UpdateDate class was not instantiated!");
-        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getTimePattern(), "dd MMM yyyy HH:mm ZZ", "Template for update date is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getUpdateTime(dateTime), DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ").withLocale(Locale.ENGLISH).print(dateTime), "Template for update date is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getRow(), 3, "Row for update date is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getCol(), 5, "Column for update date is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getToHide(), "ToHide class was not instantiated!");
@@ -90,9 +94,7 @@ public class PropertiesTests {
         Assert.assertEquals(reporter.getConfig().getReport().getProcessingFlags().isRecalculateFormulas(), false, "RecalculateFormulas flag is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getProcessingFlags().isAutosizeColumns(), false, "AutosizeColumns flag is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getReportName(), "Report name class was not instantiated!");
-        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getPrefix(), "prefix_", "Report prefix is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getTimePattern(), "yyyy.MM.dd_HH_mm_ss", "Report time pattern is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getSuffix(), "_suffix", "Report suffix is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(dateTime), "prefix_" + DateTimeFormat.forPattern("yyyy.MM.dd_HH_mm_ss").withLocale(Locale.ENGLISH).print(dateTime) + "_suffix", "Report name is invalid!");
     }
 
     @Test(dependsOnMethods = "testAllProperties", groups = "core")
@@ -217,6 +219,58 @@ public class PropertiesTests {
             Throwable linked = cause.getLinkedException();
             Assert.assertEquals(linked.getClass(), SAXParseException.class, "Wrong linked exception class:");
             Assert.assertEquals(linked.getMessage(), "cvc-complex-type.2.4.b: The content of element 'links' is not complete. One of '{entry}' is expected.", "Wrong error message:");
+        } catch (Throwable e) {
+            Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
+        }
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testEmptyReportName() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\empty_report_name.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+
+        try {
+            reporter.loadConfigFile(configFile);
+            Assert.fail("Exception " + ConfigurationException.class + " expected, but not thrown!");
+        } catch (ConfigurationException ex) {
+            Assert.assertEquals(ex.getMessage(), "At least one field for tag <reportName> should be filled!", "Wrong error message:");
+        } catch (Throwable e) {
+            Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
+        }
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testEmptyTimePattern() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\empty_time_pattern.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+        reporter.loadConfigFile(configFile);
+
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(new DateTime()), "prefix_", "Report name is invalid!");
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testMissingTimePattern() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\missing_time_pattern.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+        reporter.loadConfigFile(configFile);
+
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(new DateTime()), "prefix__suffix", "Report name is invalid!");
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testEmptyTimePatternForUpdateDate() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\empty_timepattern_updatedate.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+
+        try {
+            reporter.loadConfigFile(configFile);
+            Assert.fail("Exception " + ConfigurationException.class + " expected, but not thrown!");
+        } catch (ConfigurationException ex) {
+            Assert.assertEquals(ex.getMessage(), "Invalid pattern specification for field config -> report -> updateDate -> timePattern", "Wrong error message:");
         } catch (Throwable e) {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }

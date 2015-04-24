@@ -13,8 +13,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.xml.sax.SAXException;
 import ru.retverd.jira.reporter.progress.types.ConfigType;
 import ru.retverd.jira.reporter.progress.types.IssueColumnsType;
@@ -74,7 +72,7 @@ public class ProgressReporter {
             }
             config = (ConfigType) unmarshaller.unmarshal(new File(configFile));
         } catch (JAXBException e) {
-            ConfigurationException ex = new ConfigurationException();
+            ConfigurationException ex = new ConfigurationException(JAXBException.class + " thrown with message: " + e.getMessage());
             ex.setRootCause(e);
             if (e.getMessage() == null) {
                 log.fatal(e.getLinkedException().getMessage(), e.getLinkedException());
@@ -83,11 +81,42 @@ public class ProgressReporter {
             }
             throw ex;
         } catch (SAXException e) {
-            log.fatal("Something wrong happened during xsd-schema loading.", e);
-            ConfigurationException ex = new ConfigurationException();
+            ConfigurationException ex = new ConfigurationException("Something wrong happened during xsd-schema loading.");
             ex.setRootCause(e);
+            log.fatal(ex.getMessage(), e);
             throw ex;
         }
+
+        if (config.getReport().getUpdateDate() != null) {
+            try {
+                config.getReport().getUpdateDate().getUpdateTime(new DateTime());
+            } catch (IllegalArgumentException e) {
+                ConfigurationException ex = new ConfigurationException(e.getMessage() + " for field config -> report -> updateDate -> timePattern");
+                ex.setRootCause(e);
+                log.fatal(ex.getMessage(), e);
+                throw ex;
+            }
+        }
+
+        if (config.getReport().getReportName() != null) {
+            String tempName;
+
+            try {
+                tempName = config.getReport().getReportName().getFullName(new DateTime());
+            } catch (IllegalArgumentException e) {
+                ConfigurationException ex = new ConfigurationException(e.getMessage() + " for field config -> report -> reportName -> timePattern");
+                ex.setRootCause(e);
+                log.fatal(ex.getMessage(), e);
+                throw ex;
+            }
+
+            if (tempName.isEmpty()) {
+                ConfigurationException ex = new ConfigurationException("At least one field for tag <reportName> should be filled!");
+                log.fatal(ex.getMessage(), ex);
+                throw ex;
+            }
+        }
+
     }
 
     public void connectToJira(String login, String pass) throws ConfigurationException, IOException {
@@ -103,9 +132,9 @@ public class ProgressReporter {
         try {
             uri = new URI(config.getJira().getUrl());
         } catch (URISyntaxException e) {
-            log.fatal(e.getMessage(), e);
-            ConfigurationException ex = new ConfigurationException();
+            ConfigurationException ex = new ConfigurationException(URISyntaxException.class + " thrown with message: " + e.getMessage());
             ex.setRootCause(e);
+            log.fatal(ex.getMessage(), e);
             throw ex;
         }
 
@@ -151,9 +180,9 @@ public class ProgressReporter {
                 // TODO handle incorrect credentials!
                 // TODO handle missing access!
                 if (statusCode.get().equals(AUTH_FAIL_STATUS)) {
-                    log.fatal(errorMessage, e);
-                    ConfigurationException ex = new ConfigurationException();
+                    ConfigurationException ex = new ConfigurationException(errorMessage);
                     ex.setRootCause(e);
+                    log.fatal(errorMessage, e);
                     throw ex;
                 }
                 log.fatal(e.getMessage(), e);
@@ -210,20 +239,21 @@ public class ProgressReporter {
         // to be saved in the stream with marshaller org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
         File file = new File(reportTemplate);
         if (!file.exists()) {
-            log.fatal(System.getProperty("user.dir") + "\\" + reportTemplate + " (The system cannot find the file specified)");
-            throw new ConfigurationException(System.getProperty("user.dir") + "\\" + reportTemplate + " (The system cannot find the file specified)");
+            ConfigurationException ex = new ConfigurationException(System.getProperty("user.dir") + "\\" + reportTemplate + " (The system cannot find the file specified)");
+            log.fatal(ex.getMessage());
+            throw ex;
         }
         try {
             workbook = new XSSFWorkbook(file);
         } catch (InvalidFormatException e) {
-            log.fatal("Something went wrong during loading report file! Exception " + e.getClass() + " was thrown with message " + e.getMessage(), e);
-            ConfigurationException ex = new ConfigurationException();
+            ConfigurationException ex = new ConfigurationException("Something went wrong during loading report file! Exception " + e.getClass() + " was thrown with message " + e.getMessage());
             ex.setRootCause(e);
+            log.fatal(ex.getMessage(), e);
             throw ex;
         } catch (IOException e) {
-            log.fatal("Something wrong happened during load " + reportTemplate + ": " + e.getMessage());
-            ConfigurationException ex = new ConfigurationException();
+            ConfigurationException ex = new ConfigurationException("Something wrong happened during load " + reportTemplate + ": " + e.getMessage());
             ex.setRootCause(e);
+            log.fatal(ex.getMessage(), e);
             throw ex;
         }
     }
@@ -233,14 +263,6 @@ public class ProgressReporter {
     }
 
     public void updateReport() {
-        // Prepare time stamp if required
-        String todayPrintable = "";
-        if (config.getReport().getUpdateDate() != null) {
-            DateTime today = new DateTime();
-            DateTimeFormatter reportHeader = DateTimeFormat.forPattern(config.getReport().getUpdateDate().getTimePattern());
-            todayPrintable = reportHeader.withLocale(Locale.ENGLISH).print(today);
-        }
-
         // Iterate through sheets
         for (XSSFSheet sheet : workbook) {
             String sheetName = sheet.getSheetName();
@@ -251,7 +273,7 @@ public class ProgressReporter {
                     if (updateRow == null) {
                         log.error("Row " + humanizeRow(config.getReport().getUpdateDate().getRow()) + " for update date is missing on sheet " + sheetName + ".");
                     } else {
-                        updateRow.getCell(config.getReport().getUpdateDate().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(todayPrintable);
+                        updateRow.getCell(config.getReport().getUpdateDate().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(config.getReport().getUpdateDate().getUpdateTime(new DateTime()));
                     }
                 }
                 // Prefix for issue summary to be hidden
@@ -622,18 +644,21 @@ public class ProgressReporter {
             fos.close();
             saveFlag = true;
         } catch (IOException e) {
-            log.fatal("Something wrong happened during saving report: " + e.getMessage());
-            ConfigurationException ex = new ConfigurationException();
+            ConfigurationException ex = new ConfigurationException("Something wrong happened during saving report: " + e.getMessage());
             ex.setRootCause(e);
+            log.fatal(ex.getMessage());
             throw ex;
         }
     }
 
     public void disconnect() {
-        try {
-            jiraClient.close();
-        } catch (IOException e) {
-            log.error("Something wrong happened during JIRA client disconnection: " + e.getMessage());
+        if (jiraClient != null) {
+            try {
+                log.info("Shutting down connection to Jira!");
+                jiraClient.close();
+            } catch (IOException e) {
+                log.error("Something wrong happened during JIRA client disconnection: " + e.getMessage());
+            }
         }
     }
 

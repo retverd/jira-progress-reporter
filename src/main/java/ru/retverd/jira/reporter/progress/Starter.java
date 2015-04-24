@@ -40,15 +40,20 @@ public class Starter {
 
             reportHandler.saveReport(args[1]);
         } catch (RuntimeException e) {
-            if (e.getCause().getClass().equals(UnknownHostException.class)) {
-                log.fatal("Connection to JIRA failed! Please check your Internet connection!", e);
-            } else if (e.getCause().getClass().equals(ConnectException.class)) {
-                log.fatal("Connection to JIRA failed! Please check your proxy settings!", e);
-            } else if (e.getCause().getClass().equals(SocketException.class)) {
-                log.fatal("Connection was lost! Please check your Internet connection!", e);
+            if (e.getCause() != null) {
+                if (e.getCause().getClass().equals(UnknownHostException.class)) {
+                    log.fatal("Connection to JIRA failed! Please check your Internet connection!", e);
+                } else if (e.getCause().getClass().equals(ConnectException.class)) {
+                    log.fatal("Connection to JIRA failed! Please check your proxy settings!", e);
+                } else if (e.getCause().getClass().equals(SocketException.class)) {
+                    log.fatal("Connection was lost! Please check your Internet connection!", e);
+                } else {
+                    log.fatal(e.getClass() + ": " + e.getMessage(), e);
+                }
             } else {
-                throw e;
+                log.fatal(e.getClass() + ": " + e.getMessage(), e);
             }
+
         } catch (ConfigurationException e) {
             // TODO something?
         } finally {

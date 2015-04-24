@@ -5,7 +5,6 @@
             All boolean elements are treated as "false" if element is missing.
         </xs:documentation>
     </xs:annotation>
-    <xs:element name="config" type="configType"/>
     <xs:simpleType name="stringType">
         <xs:restriction base="xs:string"/>
     </xs:simpleType>
@@ -59,7 +58,6 @@
             <xs:element type="stringType" name="timePattern"/>
         </xs:all>
     </xs:complexType>
-    <!-- -->
     <xs:complexType name="toHideType">
         <xs:annotation>
             <xs:documentation>
@@ -152,4 +150,5 @@
             <xs:element type="reportType" name="report"/>
         </xs:all>
     </xs:complexType>
+    <xs:element name="config" type="configType"/>
 </xs:schema>
