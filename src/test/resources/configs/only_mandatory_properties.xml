@@ -4,7 +4,7 @@
         <url>https://jira.atlassian.com</url>
     </jira>
     <report>
-        <marker>#</marker>
+        <marker># </marker>
         <startProcessingRow>6</startProcessingRow>
         <issueColumns>
             <key>B</key>
