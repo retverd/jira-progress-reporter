@@ -227,7 +227,9 @@ public class ProgressReporter {
                         break;
                     }
                 }
-                log.error("Issue link type '" + link + "' is missing on server!");
+                if (!linksList.containsKey(link)) {
+                    log.error("Issue link type '" + link + "' is missing on server!");
+                }
             }
         }
     }
@@ -297,7 +299,10 @@ public class ProgressReporter {
                         if (row != null) {
                             XSSFCell cell = row.getCell(config.getReport().getToHide().getAffectedVersionCol());
                             if (cell != null) {
-                                affVersionsList = Arrays.asList(cell.getStringCellValue().trim().split(","));
+                                String[] array = cell.getStringCellValue().split(",");
+                                for (String s : array) {
+                                    affVersionsList.add(s.trim());
+                                }
                             }
                         }
                     }
@@ -310,7 +315,10 @@ public class ProgressReporter {
                         if (row != null) {
                             XSSFCell cell = row.getCell(config.getReport().getToHide().getComponentsCol());
                             if (cell != null) {
-                                componentsList = Arrays.asList(cell.getStringCellValue().trim().split(","));
+                                String[] array = cell.getStringCellValue().split(",");
+                                for (String s : array) {
+                                    componentsList.add(s.trim());
+                                }
                             }
                         }
                     }
@@ -323,7 +331,10 @@ public class ProgressReporter {
                         if (row != null) {
                             XSSFCell cell = row.getCell(config.getReport().getToHide().getLabelsCol());
                             if (cell != null) {
-                                labelsList = Arrays.asList(cell.getStringCellValue().replaceAll("\\s", "").split(","));
+                                String[] array = cell.getStringCellValue().split(",");
+                                for (String s : array) {
+                                    labelsList.add(s.trim());
+                                }
                             }
                         }
                     }
