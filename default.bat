@@ -1,1 +1,1 @@
-java -jar target/jira-progress-reporter-0.2.8-SNAPSHOT-jar-with-dependencies.jar default_config.xml default.xlsx
+java -jar target/jira-progress-reporter-0.2.8-jar-with-dependencies.jar default_config.xml default.xlsx
