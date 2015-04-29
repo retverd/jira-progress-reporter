@@ -39,6 +39,8 @@ public class Starter {
             reportHandler.updateReport();
 
             reportHandler.saveReport(args[1]);
+        } catch (IOException e) {
+            log.fatal("Something wrong happened during close input stream during template report loading: " + e.getMessage(), e);
         } catch (RuntimeException e) {
             if (e.getCause() != null) {
                 if (e.getCause().getClass().equals(UnknownHostException.class)) {

@@ -176,9 +176,8 @@ public class PropertiesTests {
         } catch (ConfigurationException ex) {
             Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause exception class:");
             UnmarshalException cause = (UnmarshalException) ex.getCause();
-            Throwable linked = cause.getLinkedException();
-            Assert.assertEquals(linked.getClass(), SAXParseException.class, "Wrong linked exception class:");
-            Assert.assertEquals(linked.getMessage(), "cvc-complex-type.2.4.b: The content of element 'config' is not complete. One of '{jira}' is expected.", "Wrong error message:");
+            Assert.assertEquals(cause.getLinkedException().getClass(), SAXParseException.class, "Wrong linked exception class:");
+            Assert.assertEquals(cause.getLinkedException().getMessage(), "cvc-complex-type.2.4.b: The content of element 'config' is not complete. One of '{jira}' is expected.", "Wrong error message:");
         } catch (Throwable e) {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }
@@ -196,9 +195,8 @@ public class PropertiesTests {
         } catch (ConfigurationException ex) {
             Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause exception class:");
             UnmarshalException cause = (UnmarshalException) ex.getCause();
-            Throwable linked = cause.getLinkedException();
-            Assert.assertEquals(linked.getClass(), SAXParseException.class, "Wrong linked exception class:");
-            Assert.assertEquals(linked.getMessage(), "cvc-complex-type.2.4.b: The content of element 'projects' is not complete. One of '{entry}' is expected.", "Wrong error message:");
+            Assert.assertEquals(cause.getLinkedException().getClass(), SAXParseException.class, "Wrong linked exception class:");
+            Assert.assertEquals(cause.getLinkedException().getMessage(), "cvc-complex-type.2.4.b: The content of element 'projects' is not complete. One of '{entry}' is expected.", "Wrong error message:");
         } catch (Throwable e) {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }
@@ -216,9 +214,8 @@ public class PropertiesTests {
         } catch (ConfigurationException ex) {
             Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause exception class:");
             UnmarshalException cause = (UnmarshalException) ex.getCause();
-            Throwable linked = cause.getLinkedException();
-            Assert.assertEquals(linked.getClass(), SAXParseException.class, "Wrong linked exception class:");
-            Assert.assertEquals(linked.getMessage(), "cvc-complex-type.2.4.b: The content of element 'links' is not complete. One of '{entry}' is expected.", "Wrong error message:");
+            Assert.assertEquals(cause.getLinkedException().getClass(), SAXParseException.class, "Wrong linked exception class:");
+            Assert.assertEquals(cause.getLinkedException().getMessage(), "cvc-complex-type.2.4.b: The content of element 'links' is not complete. One of '{entry}' is expected.", "Wrong error message:");
         } catch (Throwable e) {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }
@@ -271,6 +268,8 @@ public class PropertiesTests {
             Assert.fail("Exception " + ConfigurationException.class + " expected, but not thrown!");
         } catch (ConfigurationException ex) {
             Assert.assertEquals(ex.getMessage(), "Invalid pattern specification for field config -> report -> updateDate -> timePattern", "Wrong error message:");
+            Assert.assertEquals(ex.getCause().getClass(), IllegalArgumentException.class, "Wrong cause: ");
+            Assert.assertEquals(ex.getCause().getMessage(), "Invalid pattern specification", "Wrong cause message: ");
         } catch (Throwable e) {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }

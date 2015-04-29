@@ -6,7 +6,7 @@ import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.*;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.POIXMLException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Row;
@@ -25,10 +25,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import java.io.Console;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -234,29 +231,34 @@ public class ProgressReporter {
         }
     }
 
-    public void loadReportTemplate(String reportTemplate) throws ConfigurationException {
+    public void loadReportTemplate(String reportTemplate) throws ConfigurationException, IOException {
         // Load Excel file with report timePattern
         log.info("Reading report file " + reportTemplate);
         // OPCPackage is not used due to problems with saving results: org.apache.poi.openxml4j.exceptions.OpenXML4JException: The part /docProps/app.xml fail
         // to be saved in the stream with marshaller org.apache.poi.openxml4j.opc.internal.marshallers.DefaultMarshaller@1c67c1a6
-        File file = new File(reportTemplate);
-        if (!file.exists()) {
-            ConfigurationException ex = new ConfigurationException(System.getProperty("user.dir") + "\\" + reportTemplate + " (The system cannot find the file specified)");
-            log.fatal(ex.getMessage());
+        FileInputStream fis;
+        try {
+            fis = new FileInputStream(reportTemplate);
+        } catch (FileNotFoundException e) {
+            ConfigurationException ex = new ConfigurationException(System.getProperty("user.dir") + "\\" + e.getMessage());
+            ex.setRootCause(e);
+            log.fatal(ex.getMessage(), e);
             throw ex;
         }
         try {
-            workbook = new XSSFWorkbook(file);
-        } catch (InvalidFormatException e) {
-            ConfigurationException ex = new ConfigurationException("Something went wrong during loading report file! Exception " + e.getClass() + " was thrown with message " + e.getMessage());
+            workbook = new XSSFWorkbook(fis);
+        } catch (POIXMLException e) {
+            ConfigurationException ex = new ConfigurationException("Report template " + System.getProperty("user.dir") + "\\" + reportTemplate + " has wrong format.");
             ex.setRootCause(e);
             log.fatal(ex.getMessage(), e);
             throw ex;
         } catch (IOException e) {
-            ConfigurationException ex = new ConfigurationException("Something wrong happened during load " + reportTemplate + ": " + e.getMessage());
+            ConfigurationException ex = new ConfigurationException("Something wrong happened during load " + System.getProperty("user.dir") + "\\" + reportTemplate + ": " + e.getMessage());
             ex.setRootCause(e);
             log.fatal(ex.getMessage(), e);
             throw ex;
+        } finally {
+            fis.close();
         }
     }
 
