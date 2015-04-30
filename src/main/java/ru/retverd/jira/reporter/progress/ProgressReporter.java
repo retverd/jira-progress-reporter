@@ -12,6 +12,8 @@ import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.joda.time.DateTime;
 import org.xml.sax.SAXException;
 import ru.retverd.jira.reporter.progress.types.ConfigType;
@@ -207,6 +209,7 @@ public class ProgressReporter {
         searchFields.add("labels");
         searchFields.add("versions");
         searchFields.add("project");
+        searchFields.add("parent");
 
         projects = config.getJira().getProjects();
 
@@ -347,7 +350,7 @@ public class ProgressReporter {
                 if (jqlQuery != null) {
                     // Remove all rows with issues
                     removeRows(sheet, config.getReport().getStartProcessingRow());
-                    log.info("Search for issues will be initiated, all rows starting from issueKeyRow " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
+                    log.info("Search for issues will be initiated, all rows starting from row " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
 
                     int searchPos = 0;
                     int searchStep = config.getReport().getJqlQuery().getSearchStep();
@@ -375,7 +378,7 @@ public class ProgressReporter {
                 } else if (rootIssueKey != null) {
                     // Remove all rows with issues
                     removeRows(sheet, config.getReport().getStartProcessingRow());
-                    log.info("Search for issues will be initiated, all rows starting from issueKeyRow " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
+                    log.info("Search for issues will be initiated, all rows starting from row " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
                     // Publish details for root issue
                     XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
                     log.info("Retrieving issue " + rootIssueKey);
@@ -464,6 +467,19 @@ public class ProgressReporter {
         }
 
         row.getCell(report.getIssueColumns().getKey(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getKey());
+
+        if (relation == null && parentKey == null && report.getIssueColumns().getRelation() != null && report.getIssueColumns().getParentKey() != null) {
+            IssueField parent = issue.getField("parent");
+            if (parent != null) {
+                JSONObject parentValue = (JSONObject) parent.getValue();
+                try {
+                    parentKey = parentValue.getString("key");
+                    relation = SUBTASK_OF_VALUE;
+                } catch (JSONException e) {
+                    log.error("For issue " + issue.getKey() + " " + e.getMessage(), e);
+                }
+            }
+        }
 
         if (relation != null && report.getIssueColumns().getRelation() != null) {
             row.getCell(report.getIssueColumns().getRelation(), Row.CREATE_NULL_AS_BLANK).setCellValue(relation);

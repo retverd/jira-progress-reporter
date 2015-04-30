@@ -1,5 +1,5 @@
 # jira-progress-reporter
-JIRA Progress Reporter is Java command-line application which allows to build different progress reports in Excel from JIRA based on estimated, spent and remaining time.
+JIRA Progress Reporter is Java command-line application which allows to build progress reports in Excel from JIRA based on estimated, spent and remaining time.
 
 Based on jira-rest-java-client-re:
 * Repository: https://github.com/retverd/jira-rest-java-client-re
