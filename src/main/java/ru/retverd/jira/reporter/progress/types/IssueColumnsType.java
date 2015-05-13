@@ -38,6 +38,9 @@ public class IssueColumnsType {
     private Integer status;
     @XmlSchemaType(name = "string")
     @XmlJavaTypeAdapter(ColumnIndex.class)
+    private Integer dueDate;
+    @XmlSchemaType(name = "string")
+    @XmlJavaTypeAdapter(ColumnIndex.class)
     private Integer afVersion;
     @XmlSchemaType(name = "string")
     @XmlJavaTypeAdapter(ColumnIndex.class)
@@ -79,6 +82,10 @@ public class IssueColumnsType {
 
     public Integer getStatus() {
         return status;
+    }
+
+    public Integer getDueDate() {
+        return dueDate;
     }
 
     public Integer getAfVersion() {

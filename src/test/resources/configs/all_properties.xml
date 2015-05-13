@@ -69,12 +69,17 @@
             <!--Optional:-->
             <afVersion>I</afVersion>
             <!--Optional:-->
-            <components>J</components>
+            <dueDate>J</dueDate>
             <!--Optional:-->
-            <labels>K</labels>
+            <components>K</components>
             <!--Optional:-->
-            <assignee>L</assignee>
+            <labels>L</labels>
+            <!--Optional:-->
+            <assignee>M</assignee>
         </issueColumns>
+        <!--Optional:-->
+        <dueDateFormat>dd.mmm.yy</dueDateFormat>
+        <!--Optional:-->
         <timeTrackingFormat>0.00</timeTrackingFormat>
         <!--Optional:-->
         <processingFlags>

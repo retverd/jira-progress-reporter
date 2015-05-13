@@ -95,6 +95,7 @@
             <xs:element type="columnType" name="remainingTime" minOccurs="0"/>
             <xs:element type="columnType" name="status" minOccurs="0"/>
             <xs:element type="columnType" name="afVersion" minOccurs="0"/>
+            <xs:element type="columnType" name="dueDate" minOccurs="0"/>
             <xs:element type="columnType" name="components" minOccurs="0"/>
             <xs:element type="columnType" name="labels" minOccurs="0"/>
             <xs:element type="columnType" name="assignee" minOccurs="0"/>
@@ -131,6 +132,10 @@
                     Find syntax for element timeTrackingFormat here: https://support.microsoft.com/en-us/kb/264372/,
                     https://support.office.com/en-US/article/create-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4.
                 </xs:documentation>
+                <xs:documentation>
+                    Find syntax for element dueDateFormat here:
+                    https://support.office.com/en-ca/article/Format-a-date-the-way-you-want-8e10019e-d5d8-47a1-ba95-db95123d273e.
+                </xs:documentation>
             </xs:annotation>
             <xs:element type="stringType" name="marker"/>
             <xs:element type="updateDateType" name="updateDate" minOccurs="0"/>
@@ -139,6 +144,7 @@
             <xs:element type="rootIssueType" name="rootIssue" minOccurs="0"/>
             <xs:element type="rowType" name="startProcessingRow"/>
             <xs:element type="issueColumnsType" name="issueColumns"/>
+            <xs:element type="stringType" name="dueDateFormat" minOccurs="0"/>
             <xs:element type="stringType" name="timeTrackingFormat" minOccurs="0"/>
             <xs:element type="processingFlagsType" name="processingFlags" minOccurs="0"/>
             <xs:element type="reportNameType" name="reportName" minOccurs="0"/>

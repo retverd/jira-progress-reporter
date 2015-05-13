@@ -85,9 +85,11 @@ public class PropertiesTests {
         Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getRemainingTime(), Integer.valueOf(6), "Column for issue remaining time is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getStatus(), Integer.valueOf(7), "Column for issue status is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getAfVersion(), Integer.valueOf(8), "Column for issue affected version(s) is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getComponents(), Integer.valueOf(9), "Column for issue component(s) is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getLabels(), Integer.valueOf(10), "Column for issue label(s) is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getAssignee(), Integer.valueOf(11), "Column for issue assignee is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getDueDate(), Integer.valueOf(9), "Column for issue component(s) is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getComponents(), Integer.valueOf(10), "Column for issue component(s) is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getLabels(), Integer.valueOf(11), "Column for issue label(s) is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getIssueColumns().getAssignee(), Integer.valueOf(12), "Column for issue assignee is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getDueDateFormat(), "dd.mmm.yy", "Time tracking format is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getTimeTrackingFormat(), "0.00", "Time tracking format is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getProcessingFlags(), "Processing flags class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getReport().getProcessingFlags().isIssueSummaryUpdate(), true, "IssueSummaryUpdate flag is invalid!");

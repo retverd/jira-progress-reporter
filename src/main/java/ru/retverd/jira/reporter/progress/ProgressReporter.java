@@ -39,24 +39,27 @@ public class ProgressReporter {
     static private final String SUBTASK_OF_VALUE = "subtask of";
     // String for subtasks
     static private final String SCHEMA_FILE = "progress_reporter.xsd";
+    // Default dueDateFormat
+    static private final String DUE_DATE_FORMAT = "dd.mm.yyyy";
     //
     static private final Integer AUTH_FAIL_STATUS = 401;
     //
     private static final Logger log = Logger.getLogger(ProgressReporter.class.getName());
     //
     private boolean saveFlag = false;
+    // Relevant for whole report
+    private ConfigType config;
+    private XSSFWorkbook workbook;
+    private JiraRestClient jiraClient;
+    private Set<String> searchFields;
+    private List<String> projects;
+    private short dueDateFormat;
     // Relevant for one sheet only
     private String issueSummaryPrefixToHide;
     private Map<String, String> linksList;
     private List<String> affVersionsList;
     private List<String> componentsList;
     private List<String> labelsList;
-    //
-    private ConfigType config;
-    private XSSFWorkbook workbook;
-    private JiraRestClient jiraClient;
-    private Set<String> searchFields;
-    private List<String> projects;
 
     public void loadConfigFile(String configFile) throws ConfigurationException {
         log.info("Loading and parsing properties from " + configFile);
@@ -115,7 +118,6 @@ public class ProgressReporter {
                 throw ex;
             }
         }
-
     }
 
     public void connectToJira(String login, String pass) throws ConfigurationException, IOException {
@@ -210,6 +212,7 @@ public class ProgressReporter {
         searchFields.add("versions");
         searchFields.add("project");
         searchFields.add("parent");
+        searchFields.add("duedate");
 
         projects = config.getJira().getProjects();
 
@@ -262,6 +265,10 @@ public class ProgressReporter {
             throw ex;
         } finally {
             fis.close();
+        }
+
+        if (config.getReport().getIssueColumns().getDueDate() != null) {
+            dueDateFormat = workbook.createDataFormat().getFormat(config.getReport().getDueDateFormat() == null ? DUE_DATE_FORMAT : config.getReport().getDueDateFormat());
         }
     }
 
@@ -350,7 +357,7 @@ public class ProgressReporter {
                 if (jqlQuery != null) {
                     // Remove all rows with issues
                     removeRows(sheet, config.getReport().getStartProcessingRow());
-                    log.info("Search for issues will be initiated, all rows starting from row " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
+                    log.info("Processing of linked issues will be initiated, all rows starting from row " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
 
                     int searchPos = 0;
                     int searchStep = config.getReport().getJqlQuery().getSearchStep();
@@ -540,10 +547,17 @@ public class ProgressReporter {
             row.getCell(report.getIssueColumns().getLabels(), Row.CREATE_NULL_AS_BLANK).setCellValue(labels);
         }
 
-        if (report.getIssueColumns().getAssignee() != null) {
-            row.getCell(report.getIssueColumns().getAssignee(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getAssignee() == null ? "" : issue.getAssignee().getDisplayName());
+        if (report.getIssueColumns().getAssignee() != null && issue.getAssignee() != null) {
+            row.getCell(report.getIssueColumns().getAssignee(), Row.CREATE_NULL_AS_BLANK).setCellValue(issue.getAssignee().getDisplayName());
         }
 
+        if (report.getIssueColumns().getDueDate() != null && issue.getDueDate() != null) {
+            XSSFCell dueDateCell = row.getCell(report.getIssueColumns().getDueDate(), Row.CREATE_NULL_AS_BLANK);
+            dueDateCell.setCellValue(issue.getDueDate().toDate());
+            XSSFCellStyle cs = dueDateCell.getCellStyle();
+            cs.setDataFormat(dueDateFormat);
+            dueDateCell.setCellStyle(cs);
+        }
     }
 
     private void adjustCellsWidth(XSSFSheet sheet) {

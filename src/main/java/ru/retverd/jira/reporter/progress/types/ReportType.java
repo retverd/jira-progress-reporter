@@ -15,6 +15,7 @@ public class ReportType {
     protected int startProcessingRow;
     protected IssueColumnsType issueColumns;
     private String timeTrackingFormat;
+    private String dueDateFormat;
     protected ProcessingFlagsType processingFlags;
     protected ReportNameType reportName;
 
@@ -57,6 +58,10 @@ public class ReportType {
 
     public String getTimeTrackingFormat() {
         return timeTrackingFormat;
+    }
+
+    public String getDueDateFormat() {
+        return dueDateFormat;
     }
 
     public ProcessingFlagsType getProcessingFlags() {
