@@ -8,6 +8,17 @@
     <xs:simpleType name="stringType">
         <xs:restriction base="xs:string"/>
     </xs:simpleType>
+    <xs:simpleType name="localeType">
+        <xs:annotation>
+            <xs:documentation>
+                Locale names are based on http://docs.oracle.com/javase/1.5.0/docs/api/java/util/Locale.html.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ENGLISH"/>
+            <xs:enumeration value="GERMAN"/>
+        </xs:restriction>
+    </xs:simpleType>
     <xs:simpleType name="portType">
         <xs:restriction base="xs:positiveInteger">
             <xs:maxInclusive value="65535"/>
@@ -154,6 +165,7 @@
         <xs:all>
             <xs:element type="jiraType" name="jira"/>
             <xs:element type="reportType" name="report"/>
+            <xs:element type="localeType" name="locale" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
     <xs:element name="config" type="configType"/>

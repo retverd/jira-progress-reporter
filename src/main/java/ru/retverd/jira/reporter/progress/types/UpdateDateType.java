@@ -3,7 +3,9 @@ package ru.retverd.jira.reporter.progress.types;
 import org.apache.poi.ss.util.CellReference;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -19,8 +21,12 @@ public class UpdateDateType {
     protected int row;
     protected int col;
 
-    public String getUpdateTime(DateTime dateTime) {
-        return DateTimeFormat.forPattern(timePattern).withLocale(Locale.ENGLISH).print(dateTime);
+    public String getUpdateTime(DateTime dateTime, @Nullable Locale locale) {
+        DateTimeFormatter dateFormForReport = DateTimeFormat.forPattern(timePattern);
+        if (locale != null) {
+            dateFormForReport = dateFormForReport.withLocale(locale);
+        }
+        return dateFormForReport.print(dateTime);
     }
 
     public int getRow() {

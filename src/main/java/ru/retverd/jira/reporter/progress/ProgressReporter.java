@@ -74,13 +74,15 @@ public class ProgressReporter {
             }
             config = (ConfigType) unmarshaller.unmarshal(new File(configFile));
         } catch (JAXBException e) {
-            ConfigurationException ex = new ConfigurationException(JAXBException.class + " thrown with message: " + e.getMessage());
-            ex.setRootCause(e);
+            ConfigurationException ex;
             if (e.getMessage() == null) {
+                ex = new ConfigurationException(JAXBException.class + " thrown with linked exception " + e.getLinkedException().getClass() + " and message: " + e.getLinkedException().getMessage());
                 log.fatal(e.getLinkedException().getMessage(), e.getLinkedException());
             } else {
+                ex = new ConfigurationException(JAXBException.class + " thrown with message: " + e.getMessage());
                 log.fatal(e.getMessage(), e);
             }
+            ex.setRootCause(e);
             throw ex;
         } catch (SAXException e) {
             ConfigurationException ex = new ConfigurationException("Something wrong happened during xsd-schema loading.");
@@ -91,7 +93,7 @@ public class ProgressReporter {
 
         if (config.getReport().getUpdateDate() != null) {
             try {
-                config.getReport().getUpdateDate().getUpdateTime(new DateTime());
+                config.getReport().getUpdateDate().getUpdateTime(new DateTime(), config.getLocale());
             } catch (IllegalArgumentException e) {
                 ConfigurationException ex = new ConfigurationException(e.getMessage() + " for field config -> report -> updateDate -> timePattern");
                 ex.setRootCause(e);
@@ -104,7 +106,7 @@ public class ProgressReporter {
             String tempName;
 
             try {
-                tempName = config.getReport().getReportName().getFullName(new DateTime());
+                tempName = config.getReport().getReportName().getFullName(new DateTime(), config.getLocale());
             } catch (IllegalArgumentException e) {
                 ConfigurationException ex = new ConfigurationException(e.getMessage() + " for field config -> report -> reportName -> timePattern");
                 ex.setRootCause(e);
@@ -120,7 +122,7 @@ public class ProgressReporter {
         }
     }
 
-    public void connectToJira(String login, String pass) throws ConfigurationException, IOException {
+    public void connectToJira(String login, String pass) throws ConfigurationException {
         if (config.getJira().getProxy() != null) {
             System.setProperty("https.proxyHost", config.getJira().getProxy().getHost());
             System.setProperty("https.proxyPort", config.getJira().getProxy().getPort());
@@ -287,7 +289,7 @@ public class ProgressReporter {
                     if (updateRow == null) {
                         log.error("Row " + humanizeRow(config.getReport().getUpdateDate().getRow()) + " for update date is missing on sheet " + sheetName + ".");
                     } else {
-                        updateRow.getCell(config.getReport().getUpdateDate().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(config.getReport().getUpdateDate().getUpdateTime(new DateTime()));
+                        updateRow.getCell(config.getReport().getUpdateDate().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(config.getReport().getUpdateDate().getUpdateTime(new DateTime(), config.getLocale()));
                     }
                 }
                 // Prefix for issue summary to be hidden
@@ -634,7 +636,7 @@ public class ProgressReporter {
         } catch (RestClientException e) {
             if (e.getStatusCode().isPresent()) {
                 if (e.getStatusCode().get().equals(404)) {
-                    log.error("Issue " + issueKey + " wasn't found. It doesn't exist or you have not enought rights to access it.");
+                    log.error("Issue " + issueKey + " wasn't found. It doesn't exist or you have not enough rights to access it.");
                 } else {
                     log.error("Issue " + issueKey + " wasn't found. Error message: \"" + e.getMessage() + "\". Status code: " + e.getStatusCode().get() + ".");
                 }
@@ -676,7 +678,7 @@ public class ProgressReporter {
         String notification = "Rewriting";
 
         if (config.getReport().getReportName() != null) {
-            reportFile = config.getReport().getReportName().getFullName(new DateTime()) + ".xlsx";
+            reportFile = config.getReport().getReportName().getFullName(new DateTime(), config.getLocale()) + ".xlsx";
             notification = "Saving report to";
         }
 

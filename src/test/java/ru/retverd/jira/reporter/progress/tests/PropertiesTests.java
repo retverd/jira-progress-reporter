@@ -39,6 +39,7 @@ public class PropertiesTests {
         reporter.loadConfigFile(configFile);
 
         Assert.assertNotNull(reporter.getConfig(), "Config class was not instantiated!");
+        Assert.assertEquals(reporter.getConfig().getLocale(), Locale.ENGLISH, "Locale is invalid!");
         Assert.assertNotNull(reporter.getConfig().getJira(), "Jira class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getJira().getUrl(), "https://jira.atlassian.com", "Jira URL is invalid!");
         Assert.assertEquals(reporter.getConfig().getJira().isAnonymous(), true, "Jira anonymous access flag is invalid!");
@@ -52,7 +53,7 @@ public class PropertiesTests {
         Assert.assertNotNull(reporter.getConfig().getReport(), "Report class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getReport().getMarker(), "# ", "Marker of regular sheet is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getUpdateDate(), "UpdateDate class was not instantiated!");
-        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getUpdateTime(dateTime), DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ").withLocale(Locale.ENGLISH).print(dateTime), "Template for update date is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getUpdateTime(dateTime, reporter.getConfig().getLocale()), DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ").withLocale(Locale.ENGLISH).print(dateTime), "Template for update date is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getRow(), 3, "Row for update date is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getCol(), 5, "Column for update date is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getToHide(), "ToHide class was not instantiated!");
@@ -96,7 +97,7 @@ public class PropertiesTests {
         Assert.assertEquals(reporter.getConfig().getReport().getProcessingFlags().isRecalculateFormulas(), false, "RecalculateFormulas flag is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getProcessingFlags().isAutosizeColumns(), false, "AutosizeColumns flag is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getReportName(), "Report name class was not instantiated!");
-        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(dateTime), "prefix_" + DateTimeFormat.forPattern("yyyy.MM.dd_HH_mm_ss").withLocale(Locale.ENGLISH).print(dateTime) + "_suffix", "Report name is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(dateTime, reporter.getConfig().getLocale()), "prefix_" + DateTimeFormat.forPattern("yyyy.MM.dd_HH_mm_ss").withLocale(Locale.ENGLISH).print(dateTime) + "_suffix", "Report name is invalid!");
     }
 
     @Test(dependsOnMethods = "testAllProperties", groups = "core")
@@ -107,6 +108,7 @@ public class PropertiesTests {
         reporter.loadConfigFile(configFile);
 
         Assert.assertNotNull(reporter.getConfig(), "Config class was not instantiated!");
+        Assert.assertNull(reporter.getConfig().getLocale(), "Locale was instantiated!");
         Assert.assertNotNull(reporter.getConfig().getJira(), "Jira class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getJira().getUrl(), "https://jira.atlassian.com", "Jira URL is invalid!");
         Assert.assertEquals(reporter.getConfig().getJira().isAnonymous(), false, "Jira anonymous access flag is invalid!");
@@ -132,7 +134,7 @@ public class PropertiesTests {
         Assert.assertNull(reporter.getConfig().getReport().getIssueColumns().getAssignee(), "Column for issue assignee is invalid!");
         Assert.assertNull(reporter.getConfig().getReport().getTimeTrackingFormat(), "Time tracking format is invalid!");
         Assert.assertNull(reporter.getConfig().getReport().getProcessingFlags(), "Processing flags class was instantiated!");
-        Assert.assertNull(reporter.getConfig().getReport().getReportName(), "Report name class was not instantiated!");
+        Assert.assertNull(reporter.getConfig().getReport().getReportName(), "Report name class was instantiated!");
     }
 
     @Test(dependsOnGroups = "core")
@@ -179,7 +181,7 @@ public class PropertiesTests {
             Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause exception class:");
             UnmarshalException cause = (UnmarshalException) ex.getCause();
             Assert.assertEquals(cause.getLinkedException().getClass(), SAXParseException.class, "Wrong linked exception class:");
-            Assert.assertEquals(cause.getLinkedException().getMessage(), "cvc-complex-type.2.4.b: The content of element 'config' is not complete. One of '{jira}' is expected.", "Wrong error message:");
+            Assert.assertEquals(cause.getLinkedException().getMessage(), "cvc-complex-type.2.4.b: The content of element 'config' is not complete. One of '{jira, locale}' is expected.", "Wrong error message:");
         } catch (Throwable e) {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }
@@ -246,7 +248,7 @@ public class PropertiesTests {
         ProgressReporter reporter = new ProgressReporter();
         reporter.loadConfigFile(configFile);
 
-        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(new DateTime()), "prefix_", "Report name is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(new DateTime(), reporter.getConfig().getLocale()), "prefix_", "Report name is invalid!");
     }
 
     @Test(dependsOnGroups = "core")
@@ -256,7 +258,7 @@ public class PropertiesTests {
         ProgressReporter reporter = new ProgressReporter();
         reporter.loadConfigFile(configFile);
 
-        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(new DateTime()), "prefix__suffix", "Report name is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(new DateTime(), reporter.getConfig().getLocale()), "prefix__suffix", "Report name is invalid!");
     }
 
     @Test(dependsOnGroups = "core")
@@ -276,4 +278,53 @@ public class PropertiesTests {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }
     }
+
+    @Test(dependsOnGroups = "core")
+    public void testDefaultLocale() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\default_locale.xml";
+        DateTime dateTime = new DateTime();
+
+        ProgressReporter reporter = new ProgressReporter();
+        reporter.loadConfigFile(configFile);
+
+        Assert.assertNull(reporter.getConfig().getLocale(), "Locale class was instantiated!");
+        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getUpdateTime(dateTime, reporter.getConfig().getLocale()), DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ").print(dateTime), "Template for update date is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(dateTime, reporter.getConfig().getLocale()), DateTimeFormat.forPattern("yyyy.MM.dd_HH_mm_ss").print(dateTime), "Report name is invalid!");
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testGermanLocale() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\german_locale.xml";
+
+        DateTime dateTime = new DateTime();
+
+        ProgressReporter reporter = new ProgressReporter();
+        reporter.loadConfigFile(configFile);
+
+        Assert.assertEquals(reporter.getConfig().getLocale(), Locale.GERMAN, "Locale is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getUpdateTime(dateTime, reporter.getConfig().getLocale()), DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ").withLocale(Locale.GERMAN).print(dateTime), "Template for update date is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getReportName().getFullName(dateTime, reporter.getConfig().getLocale()), DateTimeFormat.forPattern("yyyy.MM.dd_HH_mm_ss").withLocale(Locale.GERMAN).print(dateTime), "Report name is invalid!");
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testWrongLocale() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\wrong_locale.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+
+        try {
+            reporter.loadConfigFile(configFile);
+            Assert.fail("Exception " + ConfigurationException.class + " expected, but not thrown!");
+        } catch (ConfigurationException ex) {
+            Assert.assertEquals(ex.getMessage(), "class javax.xml.bind.JAXBException thrown with linked exception class org.xml.sax.SAXParseException and message: cvc-enumeration-valid: Value 'RUSSIAN' is not facet-valid with respect to enumeration '[ENGLISH, GERMAN]'. It must be a value from the enumeration.", "Wrong error message:");
+            Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause: ");
+            Assert.assertNull(ex.getCause().getMessage(), "Cause message is not null!");
+        } catch (Throwable e) {
+            Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
+        }
+    }
+//    TODO Add test for locale added in XSD, but missing in Java
+//    @Test(dependsOnGroups = "core")
+//    public void testUnexpectedLocale() throws Throwable {
+//    }
 }

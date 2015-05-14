@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../progress_reporter.xsd">
+    <locale>GERMAN</locale>
+    <jira>
+        <url>https://jira.atlassian.com</url>
+    </jira>
+    <report>
+        <marker>#</marker>
+        <updateDate>
+            <cell>F4</cell>
+            <timePattern>dd MMM yyyy HH:mm ZZ</timePattern>
+        </updateDate>
+        <startProcessingRow>6</startProcessingRow>
+        <issueColumns>
+            <key>B</key>
+        </issueColumns>
+        <reportName>
+            <timePattern>yyyy.MM.dd_HH_mm_ss</timePattern>
+        </reportName>
+    </report>
+</config>

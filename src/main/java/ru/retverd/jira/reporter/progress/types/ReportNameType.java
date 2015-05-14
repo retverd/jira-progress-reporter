@@ -4,6 +4,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlType;
@@ -17,11 +18,14 @@ public class ReportNameType {
     protected String timePattern = "";
     protected String suffix = "";
 
-    public String getFullName(DateTime dateTime) {
+    public String getFullName(DateTime dateTime, @Nullable Locale locale) {
         String time = "";
         if (!timePattern.isEmpty()) {
             DateTimeFormatter dateFormForReport = DateTimeFormat.forPattern(timePattern);
-            time = dateFormForReport.withLocale(Locale.ENGLISH).print(dateTime);
+            if (locale != null) {
+                dateFormForReport = dateFormForReport.withLocale(locale);
+            }
+            time = dateFormForReport.print(dateTime);
         }
         return prefix + time + suffix;
     }
