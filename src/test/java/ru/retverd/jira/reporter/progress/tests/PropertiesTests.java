@@ -54,24 +54,24 @@ public class PropertiesTests {
         Assert.assertEquals(reporter.getConfig().getReport().getMarker(), "# ", "Marker of regular sheet is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getUpdateDate(), "UpdateDate class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getUpdateTime(dateTime, reporter.getConfig().getLocale()), DateTimeFormat.forPattern("dd MMM yyyy HH:mm ZZ").withLocale(Locale.ENGLISH).print(dateTime), "Template for update date is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getRow(), 3, "Row for update date is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getCol(), 5, "Column for update date is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getCell().getRow(), 3, "Row for update date is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getUpdateDate().getCell().getCol(), 5, "Column for update date is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getToHide(), "ToHide class was not instantiated!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getIssuePrefixRow(), Integer.valueOf(2), "Row for issue prefix is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getIssuePrefixCol(), Integer.valueOf(0), "Column for issue prefix is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getAffectedVersionRow(), Integer.valueOf(2), "Row for affected version is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getAffectedVersionCol(), Integer.valueOf(8), "Column for affected version is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getComponentsRow(), Integer.valueOf(2), "Row for components is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getComponentsCol(), Integer.valueOf(9), "Column for components is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getLabelsRow(), Integer.valueOf(2), "Row for labels is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getLabelsCol(), Integer.valueOf(10), "Column for labels is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getIssuePrefixCell().getRow(), 2, "Row for issue prefix is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getIssuePrefixCell().getCol(), 0, "Column for issue prefix is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getAffectedVersionCell().getRow(), 2, "Row for affected version is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getAffectedVersionCell().getCol(), 8, "Column for affected version is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getComponentsCell().getRow(), 2, "Row for components is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getComponentsCell().getCol(), 9, "Column for components is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getLabelsCell().getRow(), 2, "Row for labels is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getToHide().getLabelsCell().getCol(), 10, "Column for labels is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getJqlQuery(), "JQL request class was not instantiated!");
-        Assert.assertEquals(reporter.getConfig().getReport().getJqlQuery().getCol(), 1, "Column for JQL request is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getJqlQuery().getRow(), 2, "Row for JQL request is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getJqlQuery().getCell().getCol(), 1, "Column for JQL request is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getJqlQuery().getCell().getRow(), 2, "Row for JQL request is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getRootIssue(), "Root Issue class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().isUnfoldSubtasks(), true, "UnfoldSubtasks flag is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().getIssueKeyCol(), 3, "Column for root issue is invalid!");
-        Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().getIssueKeyRow(), 2, "Row for root issue is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().getCell().getCol(), 3, "Column for root issue is invalid!");
+        Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().getCell().getRow(), 2, "Row for root issue is invalid!");
         Assert.assertNotNull(reporter.getConfig().getReport().getRootIssue().getLinks(), "Issue links class was not instantiated!");
         Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().getLinks().get(0), "relates to", "Column for link types is invalid!");
         Assert.assertEquals(reporter.getConfig().getReport().getRootIssue().getLinks().get(1), "is duplicated by", "Row for link types is invalid!");
@@ -158,14 +158,10 @@ public class PropertiesTests {
         reporter.loadConfigFile(configFile);
 
         Assert.assertNotNull(reporter.getConfig().getReport().getToHide(), "ToHide class was not instantiated!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getIssuePrefixRow(), "Row for issue prefix is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getIssuePrefixCol(), "Column for issue prefix is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getAffectedVersionRow(), "Row for affected version is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getAffectedVersionCol(), "Column for affected version is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getComponentsRow(), "Row for components is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getComponentsCol(), "Column for components is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getLabelsRow(), "Row for labels is invalid!");
-        Assert.assertNull(reporter.getConfig().getReport().getToHide().getLabelsCol(), "Column for labels is invalid!");
+        Assert.assertNull(reporter.getConfig().getReport().getToHide().getIssuePrefixCell(), "Cell for issue prefix is invalid!");
+        Assert.assertNull(reporter.getConfig().getReport().getToHide().getAffectedVersionCell(), "Cell for affected version is invalid!");
+        Assert.assertNull(reporter.getConfig().getReport().getToHide().getComponentsCell(), "Cell for components is invalid!");
+        Assert.assertNull(reporter.getConfig().getReport().getToHide().getLabelsCell(), "Cell for labels is invalid!");
     }
 
     @Test(dependsOnGroups = "core")
@@ -323,6 +319,43 @@ public class PropertiesTests {
             Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
         }
     }
+
+    @Test(dependsOnGroups = "core")
+    public void testOnlyColumnCell() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\only_column_cell_property.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+
+        try {
+            reporter.loadConfigFile(configFile);
+            Assert.fail("Exception " + ConfigurationException.class + " expected, but not thrown!");
+        } catch (ConfigurationException ex) {
+            Assert.assertEquals(ex.getMessage(), "class javax.xml.bind.JAXBException thrown with linked exception class org.xml.sax.SAXParseException and message: cvc-pattern-valid: Value 'F' is not facet-valid with respect to pattern '([A-Z])+([0-9])+' for type 'cellType'.", "Wrong error message:");
+            Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause: ");
+            Assert.assertNull(ex.getCause().getMessage(), "Cause message is not null!");
+        } catch (Throwable e) {
+            Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
+        }
+    }
+
+    @Test(dependsOnGroups = "core")
+    public void testOnlyRowCell() throws Throwable {
+        String configFile = "src\\test\\resources\\configs\\only_row_cell_property.xml";
+
+        ProgressReporter reporter = new ProgressReporter();
+
+        try {
+            reporter.loadConfigFile(configFile);
+            Assert.fail("Exception " + ConfigurationException.class + " expected, but not thrown!");
+        } catch (ConfigurationException ex) {
+            Assert.assertEquals(ex.getMessage(), "class javax.xml.bind.JAXBException thrown with linked exception class org.xml.sax.SAXParseException and message: cvc-pattern-valid: Value '4' is not facet-valid with respect to pattern '([A-Z])+([0-9])+' for type 'cellType'.", "Wrong error message:");
+            Assert.assertEquals(ex.getCause().getClass(), UnmarshalException.class, "Wrong cause: ");
+            Assert.assertNull(ex.getCause().getMessage(), "Cause message is not null!");
+        } catch (Throwable e) {
+            Assert.fail("Wrong exception: expected [" + ConfigurationException.class + "], but actual is [" + e.getClass() + "] with message " + e.getMessage());
+        }
+    }
+
 //    TODO Add test for locale added in XSD, but missing in Java
 //    @Test(dependsOnGroups = "core")
 //    public void testUnexpectedLocale() throws Throwable {

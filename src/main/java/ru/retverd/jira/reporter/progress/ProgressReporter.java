@@ -10,12 +10,12 @@ import org.apache.poi.POIXMLException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.joda.time.DateTime;
 import org.xml.sax.SAXException;
+import ru.retverd.jira.reporter.progress.helpers.ExcelHelper;
 import ru.retverd.jira.reporter.progress.types.ConfigType;
 import ru.retverd.jira.reporter.progress.types.IssueColumnsType;
 import ru.retverd.jira.reporter.progress.types.ReportType;
@@ -285,20 +285,20 @@ public class ProgressReporter {
             if (sheetName.contains(config.getReport().getMarker())) {
                 log.info("Processing sheet \"" + sheetName.replace(config.getReport().getMarker(), "") + "\"...");
                 if (config.getReport().getUpdateDate() != null) {
-                    XSSFRow updateRow = sheet.getRow(config.getReport().getUpdateDate().getRow());
+                    XSSFRow updateRow = sheet.getRow(config.getReport().getUpdateDate().getCell().getRow());
                     if (updateRow == null) {
-                        log.error("Row " + humanizeRow(config.getReport().getUpdateDate().getRow()) + " for update date is missing on sheet " + sheetName + ".");
+                        log.error("Row " + ExcelHelper.humanizeRow(config.getReport().getUpdateDate().getCell().getRow()) + " for update date is missing on sheet " + sheetName + ".");
                     } else {
-                        updateRow.getCell(config.getReport().getUpdateDate().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(config.getReport().getUpdateDate().getUpdateTime(new DateTime(), config.getLocale()));
+                        updateRow.getCell(config.getReport().getUpdateDate().getCell().getCol(), Row.CREATE_NULL_AS_BLANK).setCellValue(config.getReport().getUpdateDate().getUpdateTime(new DateTime(), config.getLocale()));
                     }
                 }
                 // Prefix for issue summary to be hidden
                 issueSummaryPrefixToHide = "";
                 if (config.getReport().getToHide() != null) {
-                    if (config.getReport().getToHide().getIssuePrefixRow() != null && config.getReport().getToHide().getIssuePrefixCol() != null) {
-                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getIssuePrefixRow());
+                    if (config.getReport().getToHide().getIssuePrefixCell() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getIssuePrefixCell().getRow());
                         if (row != null) {
-                            XSSFCell cell = row.getCell(config.getReport().getToHide().getIssuePrefixCol());
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getIssuePrefixCell().getCol());
                             if (cell != null) {
                                 issueSummaryPrefixToHide = cell.getStringCellValue();
                             }
@@ -308,10 +308,10 @@ public class ProgressReporter {
                 // List of affVersions to be hidden
                 affVersionsList = new ArrayList<String>();
                 if (config.getReport().getToHide() != null) {
-                    if (config.getReport().getToHide().getAffectedVersionRow() != null && config.getReport().getToHide().getAffectedVersionCol() != null) {
-                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getAffectedVersionRow());
+                    if (config.getReport().getToHide().getAffectedVersionCell() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getAffectedVersionCell().getRow());
                         if (row != null) {
-                            XSSFCell cell = row.getCell(config.getReport().getToHide().getAffectedVersionCol());
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getAffectedVersionCell().getCol());
                             if (cell != null) {
                                 String[] array = cell.getStringCellValue().split(",");
                                 for (String s : array) {
@@ -324,10 +324,10 @@ public class ProgressReporter {
                 // List of components to be hidden
                 componentsList = new ArrayList<String>();
                 if (config.getReport().getToHide() != null) {
-                    if (config.getReport().getToHide().getComponentsRow() != null && config.getReport().getToHide().getComponentsCol() != null) {
-                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getComponentsRow());
+                    if (config.getReport().getToHide().getComponentsCell() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getComponentsCell().getRow());
                         if (row != null) {
-                            XSSFCell cell = row.getCell(config.getReport().getToHide().getComponentsCol());
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getComponentsCell().getCol());
                             if (cell != null) {
                                 String[] array = cell.getStringCellValue().split(",");
                                 for (String s : array) {
@@ -340,10 +340,10 @@ public class ProgressReporter {
                 // List of labels to be hidden
                 labelsList = new ArrayList<String>();
                 if (config.getReport().getToHide() != null) {
-                    if (config.getReport().getToHide().getLabelsRow() != null && config.getReport().getToHide().getLabelsCol() != null) {
-                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getLabelsRow());
+                    if (config.getReport().getToHide().getLabelsCell() != null) {
+                        XSSFRow row = sheet.getRow(config.getReport().getToHide().getLabelsCell().getRow());
                         if (row != null) {
-                            XSSFCell cell = row.getCell(config.getReport().getToHide().getLabelsCol());
+                            XSSFCell cell = row.getCell(config.getReport().getToHide().getLabelsCell().getCol());
                             if (cell != null) {
                                 String[] array = cell.getStringCellValue().split(",");
                                 for (String s : array) {
@@ -359,7 +359,7 @@ public class ProgressReporter {
                 if (jqlQuery != null) {
                     // Remove all rows with issues
                     removeRows(sheet, config.getReport().getStartProcessingRow());
-                    log.info("Processing of linked issues will be initiated, all rows starting from row " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
+                    log.info("Processing of linked issues will be initiated, all rows starting from row " + ExcelHelper.humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
 
                     int searchPos = 0;
                     int searchStep = config.getReport().getJqlQuery().getSearchStep();
@@ -387,7 +387,7 @@ public class ProgressReporter {
                 } else if (rootIssueKey != null) {
                     // Remove all rows with issues
                     removeRows(sheet, config.getReport().getStartProcessingRow());
-                    log.info("Search for issues will be initiated, all rows starting from row " + humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
+                    log.info("Search for issues will be initiated, all rows starting from row " + ExcelHelper.humanizeRow(config.getReport().getStartProcessingRow()) + " were deleted.");
                     // Publish details for root issue
                     XSSFRow row = sheet.createRow(sheet.getLastRowNum() + 1);
                     log.info("Retrieving issue " + rootIssueKey);
@@ -579,14 +579,6 @@ public class ProgressReporter {
         if (columns.getAssignee() != null) sheet.autoSizeColumn(columns.getAssignee(), true);
     }
 
-    private int humanizeRow(int row) {
-        return row + 1;
-    }
-
-    String humanizeColumn(int column) {
-        return CellReference.convertNumToColString(column);
-    }
-
     private void removeRows(XSSFSheet sheet, int startRow) {
         for (int i = startRow; i <= sheet.getLastRowNum(); ) {
             XSSFRow currentRow = sheet.getRow(i++);
@@ -652,9 +644,9 @@ public class ProgressReporter {
         if (config.getReport().getRootIssue() == null) {
             return null;
         }
-        XSSFRow row = sheet.getRow(config.getReport().getRootIssue().getIssueKeyRow());
+        XSSFRow row = sheet.getRow(config.getReport().getRootIssue().getCell().getRow());
         if (row == null) return null;
-        XSSFCell cell = row.getCell(config.getReport().getRootIssue().getIssueKeyCol());
+        XSSFCell cell = row.getCell(config.getReport().getRootIssue().getCell().getCol());
         if (cell == null) return null;
         if (cell.getStringCellValue().isEmpty()) return null;
         String key = cell.getStringCellValue();
@@ -666,9 +658,9 @@ public class ProgressReporter {
         if (config.getReport().getJqlQuery() == null) {
             return null;
         }
-        XSSFRow row = sheet.getRow(config.getReport().getJqlQuery().getRow());
+        XSSFRow row = sheet.getRow(config.getReport().getJqlQuery().getCell().getRow());
         if (row == null) return null;
-        XSSFCell cell = row.getCell(config.getReport().getJqlQuery().getCol());
+        XSSFCell cell = row.getCell(config.getReport().getJqlQuery().getCell().getCol());
         if (cell == null) return null;
         if (cell.getStringCellValue().isEmpty()) return null;
         return cell.getStringCellValue();

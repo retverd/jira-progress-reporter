@@ -2,6 +2,7 @@ package ru.retverd.jira.reporter.progress.types;
 
 import org.apache.poi.ss.util.CellReference;
 import ru.retverd.jira.reporter.progress.adapters.ObjectList;
+import ru.retverd.jira.reporter.progress.adapters.StringCell;
 
 import javax.xml.bind.annotation.*;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -11,27 +12,17 @@ import java.util.List;
 @XmlType(name = "rootIssueType")
 public class RootIssueType {
 
-    protected int issueKeyRow;
-    protected int issueKeyCol;
+    @XmlSchemaType(name = "string")
+    @XmlJavaTypeAdapter(StringCell.class)
+    protected CellType issueKeyCell;
     @XmlSchemaType(name = "projectsType")
     @XmlJavaTypeAdapter(ObjectList.class)
     protected List<String> links;
     @XmlElement
     protected boolean unfoldSubtasks;
 
-    @XmlElement
-    public void setIssueKeyCell(String value) {
-        CellReference cf = new CellReference(value);
-        issueKeyRow = cf.getRow();
-        issueKeyCol = cf.getCol();
-    }
-
-    public int getIssueKeyRow() {
-        return issueKeyRow;
-    }
-
-    public int getIssueKeyCol() {
-        return issueKeyCol;
+    public CellReference getCell() {
+        return issueKeyCell == null ? null : issueKeyCell.getCell();
     }
 
     public List<String> getLinks() {
